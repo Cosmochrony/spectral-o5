@@ -1,0 +1,764 @@
+\documentclass[11pt,a4paper]{article}
+
+% ---- packages ----
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage[dvipsnames]{xcolor}
+\usepackage[colorlinks=true,linkcolor=NavyBlue,citecolor=ForestGreen,urlcolor=NavyBlue]{hyperref}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{enumitem}
+\usepackage{graphicx}
+
+% ---- theorem environments ----
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{conjecture}[theorem]{Conjecture}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% ---- hyperref configured above ----
+
+% ---- macros ----
+\newcommand{\F}{\mathbb{F}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Cl}{\mathrm{Cl}}
+\newcommand{\rank}{\operatorname{rank}}
+\newcommand{\PSL}{\mathrm{PSL}}
+\newcommand{\adm}{\mathrm{adm}}
+\newcommand{\Gadm}{\widehat{G}^{\adm}}
+\newcommand{\Madm}{M_{\adm}}
+\newcommand{\PiA}{\Pi_A}
+\newcommand{\PiB}{\Pi_B}
+\newcommand{\dA}{\partial^A}
+\newcommand{\dB}{\partial^B}
+\newcommand{\kap}{\kappa_\rho}
+\DeclareMathOperator{\rowspan}{rowspan}
+\DeclareMathOperator{\End}{End}
+\newcommand{\Sstar}{S^*}
+\newcommand{\rtildeB}{\tilde{r}_n^{B,\mathrm{mat}}}
+\newcommand{\betaeff}{\beta_{\mathrm{eff}}}
+\newcommand{\betastar}{\beta^*}
+\newcommand{\betaprod}{\beta_{\mathrm{prod}}}
+\newcommand{\piA}{\pi_A}
+\newcommand{\piB}{\pi_B}
+
+\begin{document}
+
+  \title{%
+    Admissible Frontier Saturation and the Cascade Exponent:\\
+    A Representation-Theoretic Obstruction and its Matrix-Level Refinement%
+  }
+
+  \author{%
+    J\'er\^ome Beau\\[4pt]
+    \small Independent Researcher; \texttt{jerome.beau@cosmochrony.org}%
+  }
+
+  \date{March 2026}
+
+  \maketitle
+
+  \begin{abstract}
+    The Cosmochrony relaxation cascade generates an inter-generational mass hierarchy through
+    the contraction of the Kesten--McKay spectral support as the effective valence $p(n)$ grows.
+    The cascade exponent $\beta$ governing $p(n) \sim n^\beta$ was identified in companion papers
+    as the sole remaining structural parameter of the admissibility sub-programme: O3 constrains
+    $\betastar \in (0.09, 0.13)$ from lepton masses, while O4 derives the quadratic upper bound
+    $p(n) \lesssim Cn^2$ from bounded-flux and Cheeger arguments, leaving a factor of
+    $10$--$20$ unexplained.
+
+    The present paper addresses this gap by introducing the notion of \emph{admissible frontier}:
+    the subset of the raw BFS boundary whose elements introduce genuinely new directions in the
+    admissible spectral subspace.
+    We prove that the vertex-based admissible frontier saturates completely at scale
+    $O(|\Cl(G)|) = O(q)$, far below $|G| = O(q^3)$, through a direct consequence of the
+    representation theory of $G = \PSL(2, \F_q)$.
+    This Proposition is a theorem, independent of any phenomenological input.
+
+    We then examine transition-based refinements.
+    Character-based transition fingerprints collapse to the same saturation behaviour on LPS
+    graphs, where all generators lie in a single conjugacy class.
+    Fixed-dimensional matrix proxies produce a clear pre-saturation decay of the admissible
+    frontier fraction but with a $q$-independent saturation threshold, disqualifying them as
+    structural mechanisms.
+    A Steinberg-based fingerprint using the permutation action on $\mathbb{P}^1(\F_q)$
+    achieves the first $q$-structural saturation ($|S^*| \sim q^{1.15}$, $|S^*|/|G| \to 0$),
+    but the pre-saturation window remains too short to extract a reliable effective exponent.
+
+    We conclude that the smallness of $\betastar$ is not a representation-theoretic dimension
+    effect but a genuinely dynamical redundancy phenomenon, and identify $\dim \mathcal{H}_{\mathrm{mat}}
+    = O(q^2)$ as the minimal ambient dimension for a structurally complete theory.
+    The correct class of mechanisms is isolated; quantitative extraction of the exponent is
+    deferred to the next paper.
+  \end{abstract}
+
+  \textbf{Keywords:} admissible frontier; cascade exponent; $\PSL(2,\F_q)$;
+  LPS Ramanujan graphs; Kesten--McKay measure; representation theory; Steinberg representation;
+  mass hierarchy; spectral admissibility.
+
+  \clearpage
+  \tableofcontents
+  \bigskip\hrule\bigskip
+
+  \clearpage
+
+  \section{Introduction}
+    \label{sec:introduction}
+
+    \subsection{Background and motivation}
+
+      The Cosmochrony framework~\cite{Cosmochrony} posits that physical observables arise through
+      a non-injective projection $\Pi\colon \Omega_\chi \to \mathcal{O}$, where $\Omega_\chi$ is a
+      pre-geometric relational substrate.
+      The non-injectivity is not a defect but a structural feature responsible for bounded projective
+      capacity, emergent gauge structure, and finite resolution~\cite{Beau2026c}.
+
+      Effective particle masses emerge from the relaxation dynamics on $\Omega_\chi$, organised into
+      a discrete cascade indexed by rank $n$.
+      At each rank, the connectivity of the substrate is encoded in a Ramanujan--LPS Cayley graph
+      $G(n) = X^{p(n),q}$ of degree $d(n) = p(n)+1$, where $p(n)$ is the effective valence
+      parameter~\cite{Beau2026a6}.
+      As $p(n)$ grows, the Kesten--McKay spectral support contracts toward $\lambda = 1$, causing
+      fixed ADE eigenvalue levels to exit the support at distinct cascade ranks and generating the
+      observed mass ordering~\cite{Beau2026a7}.
+
+      The inter-generational mass ratios are governed by
+      \begin{equation}
+        \label{eq:mass-ratio}
+        \frac{M_i}{M_j} \approx
+        \left(\frac{|\lambda_i - 1|}{|\lambda_j - 1|}\right)^{2/\beta},
+      \end{equation}
+      where $\lambda_i$ are fixed ADE eigenvalues and $\beta$ is the exponent in $p(n) \sim n^\beta$~\cite{Beau2026a7}.
+      Matching~\eqref{eq:mass-ratio} to the charged lepton hierarchy yields
+      $\betastar \in (0.09, 0.13)$, but leaves $\beta$ as a phenomenological input.
+
+    \subsection{What O4 establishes and what remains open}
+
+      The companion paper O4~\cite{Beau2026a8} shows that the bounded-flux constraint
+      $|\partial_t \chi_v| \le c_\chi$, inherited from Born--Infeld saturation~\cite{Beau2026c},
+      limits the advance of the exploration front:
+      \begin{equation}
+        \label{eq:O4-front}
+        \Delta p(n) \lesssim c_\chi \sqrt{p(n)},
+      \end{equation}
+      which integrates to
+      \begin{equation}
+        \label{eq:O4-quad}
+        p(n) \lesssim \tfrac{1}{4} c_\chi^2 \, n^2.
+      \end{equation}
+      Under the convention $p(n) \sim n^\beta$, this implies $\beta \le 2$ algebraically.
+      The tighter claim $\beta \le 1$ of~\cite{Beau2026a8} identifies the saturated case as the
+      maximal growth rate and restricts attention to $\beta \in (0,1]$.
+      In either convention, the factor of $10$--$20$ between this bound and the phenomenological
+      window $\betastar \approx 0.1$ is left unexplained.
+
+      The present paper is O5 in the series.
+      Its objective is to identify which mechanisms can and cannot bridge this gap.
+
+    \subsection{Main results}
+
+      The central contributions are the following.
+
+      \textbf{Theorem (Proposition~\ref{prop:vertex-admissible-saturation}).}
+      The vertex-based admissible span $\Pi_A(S)$ satisfies
+      $\dim \Pi_A(S) \le \rank(\Madm) \le |\Cl(G)| = O(q)$
+      for all $S \subseteq G = \PSL(2,\F_q)$.
+      Beyond a saturation threshold $|\Sstar| = O(q) \ll |G|$,
+      the vertex-based admissible frontier $\dA S$ is empty while the raw frontier $\partial S$
+      remains $\Omega(\sqrt{|S|})$.
+
+      \textbf{Negative structural results (Section~\ref{subsec:transition-frontier}).}
+      Character-based transition fingerprints and fixed-dimensional matrix proxies are
+      insufficient to produce a $q$-structural saturation of the admissible frontier.
+      The first structurally valid construction is the Steinberg-based fingerprint on
+      $\mathbb{P}^1(\F_q)$, with $|\Sstar| \sim q^{1.15}$ and $|\Sstar|/|G| \to 0$.
+
+      \textbf{Localisation result (Remark~\ref{rem:dim-to-dynred}).}
+      The smallness of $\betastar$ cannot arise from a representation-theoretic dimension effect.
+      It must be a genuinely dynamical redundancy phenomenon in a matrix-level transition space
+      of growing dimension.
+
+    \subsection{Organisation}
+
+      Section~\ref{sec:admissible-frontier} introduces the admissible frontier framework and proves
+      Proposition~\ref{prop:vertex-admissible-saturation}.
+      The transition-based refinements are developed and tested numerically in
+      Sections~\ref{subsec:transition-frontier}--\ref{subsec:contributions-summary}.
+      Section~\ref{subsec:structural-implications} derives the structural lesson, and
+      Section~\ref{subsec:outlook-O6} states the conclusion and opens the next programme.
+
+  \section{Admissible Frontier Saturation}
+    \label{sec:admissible-frontier}
+
+
+    The central difficulty identified in~\cite{Beau2026a8} is the following.
+    The LPS Cayley graph $X^{p,q}$ is Ramanujan: its combinatorial expansion is optimal, and the
+    raw boundary $|\partial S_n|$ grows robustly along any BFS cascade.
+    Yet the argument of~\cite{Beau2026a8} establishes only the quadratic upper bound
+    \begin{equation}
+      \label{eq:O4-bound}
+      p(n) \lesssim \tfrac{1}{4} c_\chi^2 \, n^2,
+    \end{equation}
+    derived by integrating $\Delta p(n) \lesssim c_\chi\sqrt{p(n)}$ under the closure hypothesis
+    $p(n) \propto N(n)$.
+    Under the convention $p(n) \sim n^\beta$ of the O-series~\cite{Beau2026a7,Beau2026a8},
+    this implies $\beta \le 2$ algebraically.
+    The tighter formulation $\beta \le 1$ of~\cite{Beau2026a8} identifies the saturated case as
+    the maximal admissible growth rate; we adopt this convention here.
+    In either interpretation, the bound leaves the phenomenological window
+    $\betastar \in (0.09, 0.13)$ of~\cite{Beau2026a7} unexplained by a factor of $10$--$20$.
+    The gap cannot be closed by refining the Cheeger bound alone, since the Ramanujan property
+    of $X^{p,q}$ implies that Cheeger constants are already near-optimal for the graph
+    combinatorics.
+
+    \begin{remark}[Decoupling from the O4 normalisation]
+      \label{rem:O4-decoupling}
+      The quadratic bound $p(n) \lesssim C n^2$ is the only statement used from~\cite{Beau2026a8}
+      in the present work.
+      Any further normalisation of $\beta$ is purely conventional and does not affect the arguments
+      below.
+    \end{remark}
+
+    The resolution proposed here is that the relevant quantity is not the raw boundary $\partial S_n$
+    but the \emph{admissibly productive} boundary: the subset of $\partial S_n$ whose elements
+    introduce genuinely new directions in the admissible spectral subspace.
+    We show that this quantity saturates rapidly and irrevocably, at a scale
+    $|\Sstar| = O(|\Cl(G)|) \ll |G|$, independently of the graph's combinatorial expansion.
+
+    \subsection{Admissible sectors and the character matrix}
+      \label{subsec:admissible-sectors}
+
+      Let $G = \PSL(2, \F_q)$ with LPS generating set $\mathcal{S}_p \subset G$ of cardinality
+      $d = p + 1$.
+      We recall from~\cite{Beau2026a1} that the bounded-flux constraint
+      $|\partial_t \chi_v| \le c_\chi$ induces a spectral admissibility envelope
+      \begin{equation}
+        \label{eq:admissibility-envelope}
+        A_\rho^{\max} = \frac{c_\chi}{\sqrt{\lambda_\rho}},
+      \end{equation}
+      where $\lambda_\rho = d - \mu_\rho$ is the Laplacian eigenvalue of the irreducible sector
+      $\rho \in \widehat{G}$.
+      The sector $\rho$ is \emph{admissible} if $0 < \lambda_\rho \le \lambda^*$, where
+      $\lambda^* = (\sqrt{d-1}+1)^2$ is the Ramanujan spectral bound~\cite{Beau2026a1}.
+      We write $\Gadm \subset \widehat{G}$ for the set of admissible sectors.
+
+      \begin{definition}[Admissible character matrix]
+        \label{def:admissible-character-matrix}
+        The \emph{admissible character matrix} is
+        \[
+          \Madm \in \R^{|\Cl(G)| \times |\Gadm|},
+          \qquad
+          (\Madm)_{[g], \rho} := \chi_\rho(g),
+        \]
+        where $[g]$ denotes the conjugacy class of $g$ and $\chi_\rho$ is the character of $\rho$.
+        Rows are indexed by conjugacy classes; columns by admissible sectors.
+      \end{definition}
+
+      \begin{remark}[Dimensions]
+        \label{rem:dimensions}
+        For $G = \PSL(2,\F_q)$ with $q$ an odd prime:
+        $|G| = q(q^2-1)/2 = O(q^3)$;
+        $|\Cl(G)| = O(q)$;
+        $|\Gadm| \le |\widehat{G}| = O(q)$.
+        Hence $\Madm$ is $O(q) \times O(q)$ and $\rank(\Madm) \le |\Cl(G)| = O(q)$,
+        while the group itself has order $O(q^3)$.
+      \end{remark}
+
+    \subsection{The vertex-based admissible fingerprint}
+      \label{subsec:vertex-fingerprint}
+
+      \begin{definition}[Vertex-based admissible fingerprint]
+        \label{def:vertex-fingerprint}
+        For $g \in G$, the \emph{vertex-based admissible fingerprint} is
+        \[
+          \piA(g) := \bigl(\kap \, \chi_\rho(g)\bigr)_{\rho \in \Gadm}
+          \in \R^{|\Gadm|},
+        \]
+        where $\kap = \mu_\rho / d$ is the normalised adjacency eigenvalue
+        (\emph{spectral coupling},~\cite{Beau2026a2}).
+        For $S \subseteq G$ define
+        \[
+          \PiA(S) := \mathrm{span}_{\R}\{\piA(g) : g \in S\}
+          \subseteq \R^{|\Gadm|},
+        \]
+        and the \emph{vertex-based admissible frontier}
+        $\dA S := \{v \in \partial S : \piA(v) \notin \PiA(S)\}$.
+      \end{definition}
+
+    \subsection{Rapid saturation of the vertex-based admissible span}
+      \label{subsec:saturation}
+
+      \begin{proposition}[Uniform saturation of the vertex-based admissible span]
+        \label{prop:vertex-admissible-saturation}
+        Let $G = \PSL(2, \F_q)$, $\Gadm$ the admissible sectors, and $\piA$, $\PiA(S)$, $\dA S$
+        as in Definition~\ref{def:vertex-fingerprint}.
+        Then for any $S \subseteq G$:
+        \begin{equation}
+          \label{eq:rank-bound}
+          \dim \PiA(S) \le \rank(\Madm) \le |\Cl(G)|.
+        \end{equation}
+        There exists a saturation threshold $\Sstar \subseteq G$ with $|\Sstar| \le \rank(\Madm)$
+        such that once $\dim \PiA(S) = \rank(\Madm)$, no further element of $G$ can enlarge $\PiA(S)$.
+        Consequently:
+        \begin{equation}
+          \label{eq:frontier-empty}
+          \dA S = \varnothing
+          \qquad \text{for all } S \supseteq \Sstar.
+        \end{equation}
+      \end{proposition}
+
+      \begin{proof}
+        For every $g \in G$, the character $\chi_\rho(g)$ is a class function depending only on
+        $[g] \in \Cl(G)$.
+        Hence $\piA(g)$ is constant on each conjugacy class, and the set of all admissible
+        fingerprints is contained in the row space of $\Madm$.
+        This gives $\dim \PiA(S) \le \rank(\Madm) \le |\Cl(G)|$ for all $S \subseteq G$.
+        Since the row space is finite-dimensional, there exists a finite set $\Sstar$ with
+        $|\Sstar| \le \rank(\Madm)$ that already spans the full row space.
+        Once $\PiA(S) = \rowspan(\Madm)$, every $v \in G$ satisfies $\piA(v) \in \PiA(S)$,
+        so $\dA S = \varnothing$.
+      \end{proof}
+
+      \begin{corollary}[Admissible productivity bounded by group structure]
+        \label{cor:productivity-bound}
+        Along any BFS cascade $(S_n)_{n \ge 0}$ on $X^{p,q}$:
+        \begin{equation}
+          \label{eq:rn-to-zero}
+          r_n := \frac{\dim \PiA(S_n)}{|S_n|}
+          = O\!\left(\frac{\rank(\Madm)}{|S_n|}\right)
+          \xrightarrow{n \to \infty} 0.
+        \end{equation}
+        The span $\PiA(S_n)$ saturates at $|S_{n^*}| \le \rank(\Madm) = O(q)$, after which
+        $|\dA S_n| = 0$ while $|\partial S_n|$ remains $\Omega(\sqrt{|S_n|})$ by the Cheeger
+        inequality for Ramanujan graphs~\cite{Beau2026a8}.
+      \end{corollary}
+
+      \begin{remark}[Numerical verification]
+        \label{rem:numerical-A}
+        For $G = \PSL(2, \F_{13})$ with $p = 5$, $d = 6$:
+        $|G| = 4368$, $|\Gadm| = 12$, $\rank(\Madm) = 5$.
+        A BFS cascade on $X^{5,13}$ confirms saturation at $|\Sstar| \approx 35$,
+        with $|\dA S_n| = 0$ for all $|S_n| \ge 38$, while $|\partial S_n| \sim 160$--$270$.
+        The ratio $r_n$ decays as $O(5/|S_n|)$.
+        See Figure~\ref{fig:O5-A-vs-B}.
+      \end{remark}
+
+      \begin{figure}[ht]
+        \centering
+        \includegraphics[width=\textwidth]{fig1_A_vs_B}
+        \caption{%
+          Version~A vs.\ character-based Version~B on $X^{5,13}$ ($|G|=4368$,
+          $n_{\adm}=12$, $\rank(M_{\adm})=5$).
+          \textit{Top left:} $\dim\Pi_A(S_n)$ saturates at rank~5 around $|S_n|\approx35$
+          while $\dim\Pi_B(S_n)$ grows to~14 without reaching the ambient cap.
+          \textit{Top right:} $\tilde r_n^A$ drops to zero exactly at saturation;
+          $\tilde r_n^B$ stays near~0.7 with no visible decay, confirming the character-collapse
+          diagnosis of Remark~\ref{rem:character-B-limitation}.
+          \textit{Bottom:} the rank-to-size ratio $r_n = \dim\Pi_A/|S_n|$ decays as
+          $O(\rank/|S_n|)$, consistent with Corollary~\ref{cor:productivity-bound}.%
+        }
+        \label{fig:O5-A-vs-B}
+      \end{figure}
+
+      \begin{remark}[Vertex-based bound is a structural upper bound, not the final growth law]
+        \label{rem:A-not-O5}
+        The fingerprint $\piA(g)$ identifies group elements through conjugacy classes alone,
+        capturing global projective redundancy but not transition-level novelty.
+        Proposition~\ref{prop:vertex-admissible-saturation} is therefore a structural upper bound on
+        admissible productivity, not yet the dynamical growth law for $\beta$.
+      \end{remark}
+
+    \subsection{The transition-based admissible frontier}
+      \label{subsec:transition-frontier}
+
+      Proposition~\ref{prop:vertex-admissible-saturation} motivates a finer notion of admissible
+      novelty sensitive to the \emph{transition} by which a boundary vertex is reached.
+
+      \begin{definition}[Transition-based admissible fingerprint (character version)]
+        \label{def:transition-fingerprint}
+        For $u \in S_n$ and $v = u \cdot s \notin S_n$ with $s \in \mathcal{S}_p$, define
+        \[
+          \piB(u \to v) := \bigl(\kap \, \chi_\rho(u) \, \chi_\rho(v)\bigr)_{\rho \in \Gadm}
+          \in \R^{|\Gadm|},
+        \]
+        with $\PiB(S_n) := \mathrm{span}_\R\{\piB(u\to v) :
+        u \in S_n,\, v = us \notin S_n,\, s \in \mathcal{S}_p\}$
+        and $\dB S_n := \{v \in \partial S_n : \exists u,s,\; \piB(u\to v) \notin \PiB(S_n)\}$.
+      \end{definition}
+
+      \begin{remark}[Hierarchy of admissible frontiers]
+        \label{rem:frontier-hierarchy}
+        By construction $\dA S_n \subseteq \dB S_n \subseteq \partial S_n$.
+        Version A is the coarsest (vertices identified by conjugacy class);
+        the raw boundary is the finest.
+      \end{remark}
+
+      \begin{remark}[Limitation of the character-based fingerprint]
+        \label{rem:character-B-limitation}
+        Definition~\ref{def:transition-fingerprint} uses only character data.
+        On LPS graphs, the generators $\mathcal{S}_p$ lie in a single conjugacy class, so
+        $\chi_\rho(s)$ is constant across $s \in \mathcal{S}_p$ for every $\rho$.
+        The fingerprint $\piB(u\to v)$ therefore carries no directional information about the
+        generator $s$ and collapses to essentially the same saturation behaviour as Version~A.
+        A relational refinement using representation matrices $\rho(s)$ is required.
+      \end{remark}
+
+      \begin{remark}[Numerical evidence for the character-based limitation]
+        \label{rem:numerical-B}
+        The character-based Version~B was tested on $X^{5,13}$ and $X^{5,29}$.
+        The ratio $\tilde{r}_n^B = |\dB S_n|/|\partial S_n|$ remains near $0.68$ for
+        $X^{5,13}$ and near $0.77$ for $X^{5,29}$ after the initial transient, with no
+        visible decay toward zero.
+        This is consistent with the structural diagnosis of
+        Remark~\ref{rem:character-B-limitation}: character collapse on LPS graphs prevents
+        the transition fingerprint from resolving genuine directional novelty.
+        See Figure~\ref{fig:O5-versionB-saturation}.
+      \end{remark}
+
+      \begin{figure}[ht]
+        \centering
+        \includegraphics[width=\textwidth]{fig2_versionB_sat}
+        \caption{%
+          $q$-dependence of the character-based Version~B saturation on $X^{5,q}$
+          for $q \in \{13, 29\}$.
+          \textit{Left:} $\dim\Pi_A$ saturates rapidly ($q$-structural), while $\dim\Pi_B$
+          grows beyond $\rank(M_{\adm})$ but does not reach the ambient cap.
+          \textit{Right:} $\tilde r_n^B$ remains near $0.7$--$0.8$ for both values of $q$,
+          with no $q$-dependent drift.
+          This confirms that the character-based transition fingerprint produces no
+          $q$-structural saturation and is therefore insufficient as a mechanism for
+          the cascade exponent.%
+        }
+        \label{fig:O5-versionB-saturation}
+      \end{figure}
+
+      \begin{remark}[Matrix-based transition fingerprint and the Steinberg prototype]
+        \label{rem:matrix-B}
+        A structurally adequate transition fingerprint should use representation operators:
+        \[
+          \Pi_\rho(u, s) \sim \rho(u)\,\rho(s), \qquad v = us.
+        \]
+        A prototype was implemented via the permutation action of $G$ on $\mathbb{P}^1(\F_q)$
+        ($q+1$ points).
+        Each element $g$ induces a permutation $\sigma_g$; the Steinberg projection
+        $\tilde{\sigma}_g = \sigma_g - \mathrm{mean}(\sigma_g)$ lies in the $q$-dimensional Steinberg
+        component.
+        The fingerprint $\pi_B^{\mathrm{St}}(u\to v) = \tilde{\sigma}_u \odot \tilde{\sigma}_s
+        \in \R^{q+1}$ is $O(q)$-dimensional and depends on $u$ and $s$ as matrices.
+        Crucially, the LPS generators have six distinct Steinberg projections (while lying in
+        only two conjugacy classes), breaking the character-level degeneracy.
+
+        Numerical tests on $X^{5,q}$ for $q \in \{13, 17, 29\}$ yield:
+        \begin{itemize}[nosep]
+\item Saturation threshold $|S^*_{\mathrm{St}}| \approx 16, 21, 40$, scaling as
+$|S^*_{\mathrm{St}}| \sim q^{1.15}$, \emph{growing with $q$}.
+\item Ratio $|S^*_{\mathrm{St}}|/|G| \sim q^{-1.85} \to 0$: structurally meaningful.
+\item Cumulative admissible front: $p_n^{\mathrm{prod}} \sim |S_n|^{1.69}$
+(stable, $R^2 > 0.997$), outside $\betastar \in (0.09, 0.13)$.
+        \end{itemize}
+        The exponent $\betaprod \approx 1.69$ governs only the pre-saturation regime of this
+        $O(q)$-dimensional proxy; a representation of larger growing dimension is needed to
+        reach the physically relevant asymptotic regime.
+        See Figures~\ref{fig:O5-matB-variants} and~\ref{fig:O5-StElem-presat}.
+      \end{remark}
+
+      \begin{figure}[ht]
+        \centering
+        \includegraphics[width=\textwidth]{fig3_matB_variants}
+        \caption{%
+          Matrix-based Version~B variants on $X^{5,13}$.
+          \textit{M1} ($\mathrm{vec}(M_v)$, $\dim=4$): trivial saturation, function of $v$ only.
+          \textit{M2} ($M_u\otimes M_s$, $\dim=16$): strong decay to $\tilde r=0$, but
+          $q$-independent threshold $|\Sstar|\approx33$ (fixed ambient dimension artefact).
+          \textit{M3} ($\chi_\rho(u)\otimes\mathrm{vec}(M_s)$, $\dim=48$): no decay;
+          character collapse persists as in Version~B.
+          \textit{M4} (three matrix products, $\dim=12$): strong decay, same artefact as M2.
+          Directional matrix structure is \emph{necessary} (M2/M4 vs.\ M3) but fixed ambient
+          dimension is \emph{insufficient} (M2/M4 vs.\ Steinberg).%
+        }
+        \label{fig:O5-matB-variants}
+      \end{figure}
+
+      \begin{figure}[ht]
+        \centering
+        \includegraphics[width=\textwidth]{fig4_StElem_presat}
+        \caption{%
+          Steinberg-based fingerprint $\pi_B^{\mathrm{St}}(u\to v) =
+          \tilde\sigma_u \odot \tilde\sigma_s \in \R^{q+1}$ on $X^{5,q}$
+          for $q\in\{13,17,29\}$ (Remark~\ref{rem:matrix-B}).
+          \textit{Top left:} $\tilde r_n^{\mathrm{St}}$ decays to zero for all $q$;
+          vertical dashed lines mark $|\Sstar_{\mathrm{St}}|$.
+          \textit{Top right:} semi-log scale shows near-exponential pre-saturation decay.
+          \textit{Bottom left:} cumulative admissible front $p_n^{\mathrm{prod}} \sim |S_n|^{1.69}$
+          (log-log, stable across $q$).
+          \textit{Bottom right:} parameter table confirming $|\Sstar| \sim q^{1.15}$,
+          $|\Sstar|/|G| \to 0$, and stable $\betaprod \approx 1.7$.%
+        }
+        \label{fig:O5-StElem-presat}
+      \end{figure}
+
+      \begin{conjecture}[Matrix-level admissible frontier decay]
+        \label{conj:edge-admissible-decay}
+        There exists a matrix-based definition of the transition-level admissible frontier,
+        refining Definition~\ref{def:transition-fingerprint}, such that
+        \begin{equation}
+          \label{eq:rtilde-mat-decay}
+          \rtildeB := \frac{|\partial^{B,\mathrm{mat}} S_n|}{|\partial S_n|}
+          \xrightarrow{n \to \infty} 0,
+        \end{equation}
+        and the decay of $\rtildeB$ governs the effective cascade exponent via
+        \begin{equation}
+          \label{eq:beta-from-rtilde-mat}
+          \frac{dp}{dn} \lesssim \rtildeB \cdot \sqrt{p(n)}.
+        \end{equation}
+      \end{conjecture}
+
+      \begin{remark}[Scaling implication]
+        \label{rem:beta-scaling-caution}
+        Under the power-law Ansatz $\rtildeB \sim p(n)^{-\alpha}$,
+        equation~\eqref{eq:beta-from-rtilde-mat} integrates to
+        \begin{equation}
+          \label{eq:beta-from-alpha}
+          \betaeff = \frac{1}{1/2 + \alpha}.
+        \end{equation}
+        The window $\betastar \in (0.09, 0.13)$ requires $\alpha \approx 9.5$.
+        A soft polynomial decay is therefore insufficient; the required suppression must be
+        substantially stronger, e.g.\ a matrix-level saturation-of-support mechanism analogous
+        to Proposition~\ref{prop:vertex-admissible-saturation}.
+      \end{remark}
+
+    \subsection{Summary of contributions}
+      \label{subsec:contributions-summary}
+
+      \textbf{Claim 1 (Structural theorem).}
+      Vertex-level admissible novelty saturates at scale $O(q) \ll |G| = O(q^3)$
+      (Proposition~\ref{prop:vertex-admissible-saturation} and
+      Corollary~\ref{cor:productivity-bound}).
+      This is proved from the representation theory of $\PSL(2,\F_q)$ alone.
+
+      \textbf{Claim 2 (Negative structural result).}
+      Character-based transition fingerprints fail on LPS graphs: the generators lie in a single
+      conjugacy class, so $\chi_\rho(s)$ is constant and no directional information is captured
+      (Remarks~\ref{rem:character-B-limitation}--\ref{rem:numerical-B}).
+
+      \textbf{Claim 3 (Negative proxy result).}
+      A matrix fingerprint of fixed ambient dimension ($\dim = O(1)$) produces an extinction of
+      $\tilde{r}_n$ but with a $q$-independent threshold, disqualifying it as a structural
+      mechanism.
+      The Steinberg prototype achieves the first $q$-structural saturation
+      ($|S^*| \sim q^{1.15}$, $|S^*|/|G| \to 0$) but at insufficient scale for
+      $\betaeff$ measurement.
+
+      \textbf{Consequence.}
+      The smallness of $\betastar$ is not a dimension effect at the character level
+      (Claim~1 is too rigid), nor at the character-transition level (Claim~2), nor at the
+      $q$-independent matrix level (Claim~3).
+      The correct mechanism is a dynamical redundancy in a matrix-valued space of
+      growing dimension.
+
+    \subsection{Structural implications}
+      \label{subsec:structural-implications}
+
+      Proposition~\ref{prop:vertex-admissible-saturation} is a group-theoretic fact following
+      from the admissibility filter, with no appeal to dynamics.
+      The dynamical question -- why is $\beta$ small? -- is localised precisely in
+      Conjecture~\ref{conj:edge-admissible-decay}: at what rate does the matrix-level
+      productive frontier decay along the BFS exploration of $X^{p,q}$?
+
+      \begin{remark}[From dimensional saturation to dynamical redundancy]
+        \label{rem:dim-to-dynred}
+        Proposition~\ref{prop:vertex-admissible-saturation} confines vertex-level novelty to a
+        space of dimension $\rank(\Madm) = O(q)$.
+        By contrast, a matrix-level fingerprint $\rho(u)\rho(s)$ lives in $\End(V_\rho)$, so the
+        full matrix-admissible space has dimension
+        \[
+          \sum_{\rho \in \Gadm} (\dim \rho)^2 = O(q^3) \sim |G|.
+        \]
+        No early dimensional saturation is structurally forced for the matrix-based Version~B.
+        The suppression of the admissible frontier that would explain $\betastar$ \emph{cannot}
+        arise from dimensional constraints at the matrix level; it must originate from a genuinely
+        dynamical mechanism of redundancy.
+        \emph{The smallness of $\betastar$ is a dynamical fact, not a representation-theoretic one.}
+      \end{remark}
+
+    \subsection{Outlook: toward O6}
+      \label{subsec:outlook-O6}
+
+      The hierarchy of mechanisms established in this paper is summarised in
+      Table~\ref{tab:mechanisms}.
+
+      \begin{table}[ht]
+        \centering
+        \caption{Hierarchy of admissible frontier mechanisms}
+        \label{tab:mechanisms}
+        \begin{tabular}{>{\itshape}l l p{7.5cm}}
+          \toprule
+          Version & Ambient dim & Status \\
+          \midrule
+          A (vertex, character) & $O(q)$ &
+          Theorem~\ref{prop:vertex-admissible-saturation}: saturation proved,
+          window $O(q)$ \\
+          B (transition, character) & $O(q)$ &
+          Insufficient: character collapse on LPS
+          (Remark~\ref{rem:character-B-limitation}) \\
+          B (transition, fixed matrix) & $O(1)$ &
+          Directional decay, $q$-independent threshold: not structural \\
+          B (Steinberg, $\mathbb{P}^1$) & $O(q)$ &
+          First $q$-structural saturation ($|S^*| \sim q^{1.15}$);
+          pre-saturation window too short for $\betaeff$ \\
+          \bottomrule
+        \end{tabular}
+      \end{table}
+
+      \paragraph{Conclusion and outlook.}
+        The admissible frontier analysis isolates the structural origin of the effective hierarchy
+        left undetermined by O4.
+        At the vertex level, admissible novelty is provably confined to an $O(q)$-dimensional space,
+        excluding any purely vertex-based explanation of small effective exponents.
+        At the transition level, character-based fingerprints fail on LPS graphs, while
+        fixed-dimensional matrix proxies produce an artificial extinction driven by ambient
+        dimension rather than group structure.
+
+        The first structurally consistent construction is the Steinberg-based fingerprint,
+        whose saturation scale grows as $|S^*| \sim q^{1.15}$ with $|S^*|/|G| \to 0$.
+        However, the pre-saturation regime remains too short to extract a reliable
+        effective exponent, and the observed $\betaprod \approx 1.7$ lies outside the
+        phenomenological window.
+
+        These results collectively demonstrate that the smallness of the cascade exponent
+        cannot be explained by low-dimensional admissible quotients, and must instead arise
+        from a genuinely dynamical mechanism of redundancy in a matrix-level transition space
+        of growing dimension.
+        This identifies the minimal structural requirement for a viable theory of admissible
+        frontier decay, and motivates the next step: the construction of a transition-level
+        fingerprint in a space of dimension $O(q^2)$, where a sufficiently extended
+        pre-saturation regime may allow a stable effective exponent to emerge.
+
+  \section*{Acknowledgements}
+
+
+  The author thanks the Cosmochrony programme for providing the theoretical scaffolding
+  within which these computations are embedded.
+  All numerical experiments were performed in Python using NumPy, SciPy, and Matplotlib.
+
+  \section*{Data availability}
+
+  All numerical computations reported here are reproducible from the Python scripts
+  provided as supplementary material.
+  The LPS graph construction follows the explicit generators of~\cite{Beau2026a1}
+  (Section~9.6, $p=5$, $q \in \{13, 17, 29\}$).
+
+  \clearpage
+  \begin{thebibliography}{99}
+
+    \bibitem{Cosmochrony}
+    J.~Beau,
+    ``Cosmochrony: A Pre-Geometric Relational Framework for Emergent Physics,''
+    Zenodo (2025).
+    DOI: \href{https://doi.org/10.5281/zenodo.17957510}{10.5281/zenodo.17957510}.
+
+    \bibitem{Beau2026c}
+    J.~Beau,
+    ``Bounded Relational Dynamics and the Structural Necessity of Born--Infeld Geometry,''
+    Zenodo (2026).
+    DOI: \href{https://doi.org/10.5281/zenodo.18407505}{10.5281/zenodo.18407505}.
+
+    \bibitem{Beau2026a2}
+    J.~Beau,
+    ``Spectral Capacity Functional and the Binary-Polyhedral Maximality Conjecture,''
+    Zenodo (2026).
+    DOI: \href{https://doi.org/10.5281/zenodo.18945273}{10.5281/zenodo.18945273}.
+
+    \bibitem{Beau2026a1}
+    J.~Beau,
+    ``Spectral Admissibility under Bounded Flux: Non-Abelian Mode Selection
+    on Cayley Graphs of SU(2) Subgroups,''
+    Zenodo (2026).
+    DOI: \href{https://doi.org/10.5281/zenodo.18944985}{10.5281/zenodo.18944985}.
+
+    \bibitem{Beau2026a4}
+    J.~Beau,
+    ``Three Particle Generations and Mass Hierarchy from Spectral Stratigraphy,''
+    Zenodo (2026).
+    DOI: \href{https://doi.org/10.5281/zenodo.19040490}{10.5281/zenodo.19040490}.
+
+    \bibitem{Beau2026a5}
+    J.~Beau,
+    ``Asymptotic Saturation of Projective Resolution: Expander Relaxation Graphs,''
+    Zenodo (2026).
+    DOI: \href{https://doi.org/10.5281/zenodo.19056975}{10.5281/zenodo.19056975}.
+
+    \bibitem{Beau2026a6}
+    J.~Beau,
+    ``Projective Resolution Dynamics on Variable-Valence Relaxation Graphs,''
+    Zenodo (2026).
+    DOI: \href{https://doi.org/10.5281/zenodo.19076319}{10.5281/zenodo.19076319}.
+
+    \bibitem{Beau2026a7}
+    J.~Beau,
+    ``Projective Dynamics and Mass Hierarchy: Hierarchical Amplification via Growing Relational Valence,''
+    Zenodo (2026).
+    DOI: \href{https://doi.org/10.5281/zenodo.19076244}{10.5281/zenodo.19076244}.
+
+    \bibitem{Beau2026a}
+    J.~Beau,
+    ``Spectral Reconstruction of Emergent Geometry from Relational Data,''
+    Zenodo (2026).
+    DOI: \href{https://doi.org/10.5281/zenodo.18407505}{10.5281/zenodo.18407505}.
+
+    \bibitem{Beau2026a8}
+    J.~Beau,
+    ``Subdiffusive Valence Growth under Bounded Relational Flux:
+    Structural Derivation of the Cascade Exponent $\beta$,''
+    Zenodo (2026).
+    DOI: \href{https://doi.org/10.5281/zenodo.19101472}{10.5281/zenodo.19101472}.
+
+    \bibitem{LPS}
+    A.~Lubotzky, R.~Phillips, P.~Sarnak,
+    ``Ramanujan graphs,''
+    \textit{Combinatorica} \textbf{8} (1988), 261--277.
+
+    \bibitem{Kesten}
+    H.~Kesten,
+    ``Symmetric random walks on groups,''
+    \textit{Trans.\ Amer.\ Math.\ Soc.} \textbf{92} (1959), 336--354.
+
+    \bibitem{McKay}
+    B.~D.~McKay,
+    ``The expected eigenvalue distribution of a large regular graph,''
+    \textit{Linear Algebra Appl.} \textbf{40} (1981), 203--216.
+
+    \bibitem{AlonBoppana}
+    N.~Alon,
+    ``Eigenvalues and the diameter of graphs,''
+    \textit{Linear Multilinear Algebra} \textbf{18} (1986), 83--90.
+
+    \bibitem{Cheeger}
+    J.~Cheeger,
+    ``A lower bound for the smallest eigenvalue of the Laplacian,''
+    in \textit{Problems in Analysis}, Princeton Univ.\ Press, 1970, 195--199.
+
+    \bibitem{PSLreps}
+    I.~M.~Isaacs,
+    \textit{Character Theory of Finite Groups},
+    Academic Press, 1976.
+
+  \end{thebibliography}
+
+\end{document}
