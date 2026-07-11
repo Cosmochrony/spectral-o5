@@ -16,7 +16,7 @@ allowed dynamics of valence growth.
 The central result is that the Born--Infeld saturation bound inherited from the
 substrate,
 
-$|\partial_t \chi_v| \le c_\chi$,
+$|\partial_t \chi_v| \le c_{\mathrm{BI}}$,
 
 excludes all superlinear growth laws and implies the structural bound
 
@@ -35,11 +35,11 @@ Starting from:
 
 the analysis shows that the growth of valence satisfies
 
-$\Delta p(n) \lesssim c_\chi \sqrt{p(n)}$,
+$\Delta p(n) \lesssim c_{\mathrm{BI}} \sqrt{p(n)}$,
 
 which integrates to
 
-$p(n) \lesssim \frac{1}{4} c_\chi^2 n^2$.
+$p(n) \lesssim \frac{1}{4} c_{\mathrm{BI}}^2 n^2$.
 
 As a consequence, any admissible power-law ansatz
 
