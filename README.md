@@ -1,5 +1,5 @@
 This repository contains the source of the **O5** Cosmochrony paper  
-[*Subdiffusive Valence Growth under Bounded Relational Flux: Structural Derivation of the Cascade Exponent*](out/SpectralO5.pdf).
+*Subdiffusive Valence Growth under Bounded Relational Flux: Structural Derivation of the Cascade Exponent*.
 
 This work extends the **spectral relaxation programme** by addressing the final
 remaining structural parameter left undetermined by O4: the cascade exponent
