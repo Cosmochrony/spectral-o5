@@ -6,11 +6,13 @@ cascade exponent $\beta$ governing the growth law
 
 $p(n) \sim n^\beta$.
 
-While **O4** derives the quadratic upper bound $p(n) \lesssim Cn^2$ from the bounded-flux
-constraint, matching to the charged-lepton hierarchy separately selects $\betastar \in (0.09,
-0.13)$, leaving a factor of $10$--$20$ between the two unexplained. The present paper tests,
-both by proof and by shell-layered numerical construction, whether a finite class-function
-(character-trace) encoding of a graph exploration's boundary can supply that gap.
+Matching to the charged-lepton hierarchy selects $\betastar \in (0.09, 0.13)$, but no structural
+mechanism fixing $\beta$ at this scale is established: the companion note **O4** audits one
+candidate route (bounded flux plus Cheeger expansion) and finds it does not yield a structural
+bound, by the specific argument examined. The present paper tests a different,
+representation-theoretic route on the same LPS cascade, without importing any bound from O4: both
+by proof and by shell-layered numerical construction, whether a finite class-function
+(character-trace) encoding of a graph exploration's boundary can supply the missing mechanism.
 
 # Group and Graph Construction, Verified
 
@@ -75,11 +77,11 @@ None of the constructions tested supplies a viable mechanism for the smallness o
   tree-like regime shared by all three graphs at that radius --- leaving no pre-saturation window
   from which any exponent could be measured.
 
-A conjectural matrix-level redundancy law proposed in an earlier version of this paper is
-withdrawn as a candidate mechanism: no construction examined here supplies the regime in which it
-could be measured, and it shares its functional form with an expander-derived capacity-to-rate
-conversion law that the companion *Span-Growth Note* proves has no native carrier when applied to
-a different admissibility substrate (the Heisenberg measurement graph).
+A matrix-level redundancy law of the form $\beta_{\mathrm{eff}}=1/(1/2+\alpha)$ is not a viable
+candidate mechanism here: no construction examined supplies the regime in which it could be
+measured, and it shares its functional form with an expander-derived capacity-to-rate conversion
+law that the companion *Span-Growth Note* proves has no native carrier when applied to a different
+admissibility substrate (the Heisenberg measurement graph).
 
 # Structural Role of O5
 
@@ -109,10 +111,9 @@ O5 preserves all previous structural results:
 - three-level ADE stratigraphy from **Step 3**
 - projective dynamics and support contraction from **O1**
 - hierarchical amplification via growing valence from **O3**
-- unified mass closure from **O4**
 
-It does not modify the mass formula itself, and does not derive a value or a tight bound for
-$\beta$ beyond the quadratic bound $p(n) \lesssim Cn^2$ already established by O4.
+It does not modify the mass formula itself, and imports no bound on $\beta$ from O4, whose audited
+candidate route establishes none (see above).
 
 # Status
 
@@ -124,8 +125,8 @@ This paper is:
   spectral eigenvalues (Section "Trace Selection Is Not Spectral Admissibility" above);
 - a set of $q$-finite numerical observations about transition-based fingerprints, none of which
   constitutes a structural derivation of $\betastar$;
-- an explicit withdrawal of an earlier conjectural mechanism, with the reasons for withdrawal
-  stated.
+- an explicit account of why one candidate matrix-level redundancy mechanism is not viable, with
+  the reasons stated.
 
 It does **not** claim to explain the smallness of $\betastar$, does **not** claim to select
 spectrally admissible modes in the proven sense, does **not** claim a $q$-structural saturation law

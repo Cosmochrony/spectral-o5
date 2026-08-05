@@ -89,26 +89,26 @@
     The Cosmochrony relaxation cascade generates an inter-generational mass hierarchy through the
     contraction of the Kesten--McKay spectral support as the effective valence $p(n)$ grows.
     The cascade exponent $\beta$ in $p(n) \sim n^\beta$ is the sole remaining free parameter: O3
-    constrains $\betastar \in (0.09, 0.13)$ from lepton masses, while O4 derives only the quadratic
-    bound $p(n) \lesssim Cn^2$, leaving a factor of $10$--$20$ unexplained.
+    constrains $\betastar \in (0.09, 0.13)$ from lepton masses, but no structural mechanism fixing
+    $\beta$ is established; the companion note O4 audits one candidate route (bounded flux plus
+    Cheeger expansion) and finds no structural bound follows from it.
+    The present paper tests a different, representation-theoretic route, importing no bound from
+    O4.
 
     The LPS quaternion generators produce $G = \PSL(2,\F_q)$ or $\mathrm{PGL}(2,\F_q)$ depending on
-    the Legendre symbol of $p$ mod $q$ (both occur among the $q$ tested here); canonicalizing group
-    elements by their induced permutation of $\mathbb{P}^1(\F_q)$, rather than an ad hoc
-    matrix-scalar quotient, is verified to reproduce the exact closed-form group order, a symmetric
-    Cayley graph, and shell growth matching the free tree before any collision.
-    The character table is computed by Dixon's algorithm and verified via Burnside's identity.
+    the Legendre symbol of $p$ mod $q$; canonicalizing group elements by their induced permutation
+    of $\mathbb{P}^1(\F_q)$, rather than an ad hoc matrix-scalar quotient, is verified to reproduce
+    the exact closed-form group order, a symmetric Cayley graph, and shell growth matching the free
+    tree before any collision, with the character table computed by Dixon's algorithm and verified
+    via Burnside's identity.
 
     For a sector $\rho$, write $A_\rho=\sum_{s\in\mathcal S_p}\rho(s)$ and
-    $\mubar=\tr(A_\rho)/\dim\rho$.
-    Because the six generators are only a small part of their conjugacy class, $A_\rho$ is
-    generally not central and $\mubar$ is a trace average, not an eigenvalue: for $q=13$ the true
-    graph spectrum has $55$ distinct eigenvalues against only $9$ distinct trace averages across
-    the $15$ sectors.
-    Accordingly, every sector weight, selection window, and fingerprint below is named and used as a
-    \emph{character-trace} object, never identified with a Laplacian eigenvalue, a spectral envelope,
-    or a Ramanujan-admissible mode.
-    We prove that this is enough to bound novelty regardless: for any class-function encoding
+    $\mubar=\tr(A_\rho)/\dim\rho$: since the six generators are only a small part of their
+    conjugacy class, $A_\rho$ is generally not central and $\mubar$ is a trace average, not an
+    eigenvalue ($q=13$: $55$ distinct graph eigenvalues against only $9$ distinct trace averages
+    across $15$ sectors), so every sector weight, window, and fingerprint below is a
+    \emph{character-trace} object, never a Laplacian eigenvalue or Ramanujan-admissible mode.
+    We prove this suffices to bound novelty regardless: for any class-function encoding
     $\piA(g)=(\kap\chi_\rho(g))_{\rho\in\Gadm}$, the span $\mathcal R_A=\mathrm{span}\{\piA(g):g\in
     G\}$ has dimension $r_A=\rank(\Madm D_\kappa)\le\rank(\Madm)\le|\Cl(G)|=O(q)\ll|G|=O(q^3)$,
     because $\piA$ is constant on conjugacy classes regardless of the weights chosen; the middle
@@ -117,23 +117,21 @@
     A finite spanning witness $T$ with $|T|=r_A$ therefore exists, but an explicit shell-by-shell
     exploration of $X^{5,13}$ needs far more than $r_A$ vertices to find one.
 
-    A shell-layered transitional novelty, testing shell $n$ only against strictly earlier shells,
-    avoids both self-reference and traversal-order dependence.
-    Character-trace transition fingerprints collapse to a fixed, low-dimensional span; fixed-matrix
-    proxies saturate their own ambient dimension within a handful of shells; a Steinberg-based
-    fingerprint on $\mathbb{P}^1(\F_q)$ saturates its full ambient space within the first two to
-    three graph-distance shells for every tested $q\in\{13,17,29\}$, before the local tree regime
-    ends, leaving no pre-saturation window from which to extract an exponent.
-
-    None of these constructions yields a viable mechanism for $\betastar$, and none constructs or
-    selects the genuine spectral frontier.
-    A conjectural matrix-level redundancy law from an earlier version is withdrawn: it shares its
-    functional form with a conversion law the companion Span-Growth Note proves does not transfer
-    natively to a different admissibility substrate.
+    A shell-layered transitional novelty, testing shell $n$ only against strictly earlier shells
+    (avoiding both self-reference and traversal-order dependence), shows that character-trace
+    transition fingerprints collapse to a fixed, low-dimensional span, fixed-matrix proxies saturate
+    their own ambient dimension within a handful of shells, and a Steinberg-based fingerprint on
+    $\mathbb{P}^1(\F_q)$ saturates its full ambient space within the first two to three
+    graph-distance shells for every tested $q\in\{13,17,29\}$, leaving no pre-saturation window from
+    which to extract an exponent.
+    None of these constructions yields a viable mechanism for $\betastar$, nor does a matrix-level
+    redundancy law of the form $\betaeff=1/(1/2+\alpha)$: it shares its functional form with a
+    conversion law the companion Span-Growth Note proves does not transfer natively to a different
+    admissibility substrate, and no construction here supplies a regime in which $\alpha$ could even
+    be measured.
     O5's contribution is an obstruction result: finite character-trace encodings of the vertex
-    boundary cannot supply the rich, mode-resolved novelty a viable mechanism would need.
-    The genuine mode-resolved, eigenvalue-level frontier remains unconstructed, left open for a
-    future paper under its own contract.
+    boundary cannot supply the rich, mode-resolved novelty a viable mechanism would need; the genuine
+    eigenvalue-level frontier remains unconstructed, left open for a future paper.
   \end{abstract}
 
   \textbf{Keywords:} character-trace saturation; class function; cascade exponent; PSL/PGL(2,q);
@@ -175,28 +173,24 @@
       Matching~\eqref{eq:mass-ratio} to the charged lepton hierarchy yields
       $\betastar \in (0.09, 0.13)$, but leaves $\beta$ as a phenomenological input.
 
-    \subsection{What O4 establishes and what remains open}
+    \subsection{What O4 audits, and what remains open}
 
-      The companion paper O4~\cite{Beau2026a8} shows that the bounded-flux constraint
-      $|\partial_t \chi_v| \le c_{\mathrm{BI}}$, the capacity axiom [A-cap] of~\cite{Beau2026c},
-      limits the advance of the exploration front:
-      \begin{equation}
-        \label{eq:O4-front}
-        \Delta p(n) \lesssim c_{\mathrm{BI}} \sqrt{p(n)},
-      \end{equation}
-      which integrates to
-      \begin{equation}
-        \label{eq:O4-quad}
-        p(n) \lesssim \tfrac{1}{4} c_{\mathrm{BI}}^2 \, n^2.
-      \end{equation}
-      Under the convention $p(n) \sim n^\beta$, this implies $\beta \le 2$ algebraically.
-      The tighter claim $\beta \le 1$ of~\cite{Beau2026a8} identifies the saturated case as the
-      maximal growth rate and restricts attention to $\beta \in (0,1]$.
-      In either convention, the factor of $10$--$20$ between this bound and the phenomenological
-      window $\betastar \approx 0.1$ is left unexplained.
+      The companion note O4~\cite{Beau2026a8} audits a candidate route to a structural bound on
+      $\beta$: translate the bounded-flux constraint $|\partial_t \chi_v| \le c_{\mathrm{BI}}$, the
+      capacity axiom [A-cap] of~\cite{Beau2026c}, into a front-size estimate via the Cheeger
+      isoperimetric inequality for the LPS relaxation family, then integrate under a closure
+      hypothesis $p(n) \propto N(n)$.
+      That argument contains three independent defects (a boundary-type mismatch between edge and
+      vertex boundaries, a wrong-direction use of the Cheeger inequality, and a dropped
+      $\sqrt{p(n)}$ asymptotic factor), and the closure hypothesis itself is not well-typed on this
+      substrate independent of the argument that uses it.
+      \emph{No structural upper bound on $\beta$ is established by this route}, and no claim is made
+      that no such bound could exist by some other argument~\cite{Beau2026a8}.
 
       The present paper is O5 in the series.
-      Its objective is to identify which mechanisms can and cannot bridge this gap.
+      It does not import a bound from O4 and does not use the closure hypothesis or the front-size
+      estimate above; its objective is to test a different, representation-theoretic route toward a
+      structural mechanism for the smallness of $\betastar$, on the same LPS cascade.
 
     \subsection{Main results}
 
@@ -236,13 +230,12 @@
       $q \in \{13,17,29\}$, leaving no pre-saturation window from which any effective exponent could
       be extracted (Section~\ref{subsec:contributions-summary}).
 
-      \textbf{Withdrawn candidate mechanism (Section~\ref{subsec:structural-implications}).}
-      An earlier version of this paper proposed a conjectural matrix-level redundancy law linking a
-      transitional-frontier decay rate to $\betaeff$.
-      That conjecture is withdrawn as a candidate mechanism: no construction examined here supplies
-      the required pre-saturation regime, and the conjectured law shares its functional form with an
-      expander-derived conversion law shown elsewhere in the corpus not to transfer natively to a
-      different admissibility substrate (Remark~\ref{rem:conjecture-withdrawn}).
+      \textbf{Not a viable candidate mechanism (Section~\ref{subsec:structural-implications}).}
+      A matrix-level redundancy law linking a transitional-frontier decay rate to $\betaeff$ is not
+      supported here: no construction examined supplies the pre-saturation regime such a law would
+      need to be measured, and its functional form coincides with an expander-derived conversion
+      law shown elsewhere in the corpus not to transfer natively to a different admissibility
+      substrate (Remark~\ref{rem:conjecture-withdrawn}).
 
     \subsection{Organisation}
 
@@ -257,33 +250,18 @@
     \label{sec:admissible-frontier}
 
 
-    The central difficulty identified in~\cite{Beau2026a8} is the following.
+    The starting difficulty is the following.
     The LPS Cayley graph $X^{p,q}$ is Ramanujan: its combinatorial expansion is optimal, and the
     raw boundary $|\partial S_n|$ grows robustly along any BFS cascade.
-    Yet the argument of~\cite{Beau2026a8} establishes only the quadratic upper bound
-    \begin{equation}
-      \label{eq:O4-bound}
-      p(n) \lesssim \tfrac{1}{4} c_{\mathrm{BI}}^2 \, n^2,
-    \end{equation}
-    derived by integrating $\Delta p(n) \lesssim c_{\mathrm{BI}}\sqrt{p(n)}$ under the closure hypothesis
-    $p(n) \propto N(n)$.
-    Under the convention $p(n) \sim n^\beta$ of the O-series~\cite{Beau2026a7,Beau2026a8},
-    this implies $\beta \le 2$ algebraically.
-    The tighter formulation $\beta \le 1$ of~\cite{Beau2026a8} identifies the saturated case as
-    the maximal admissible growth rate; we adopt this convention here.
-    In either interpretation, the bound leaves the phenomenological window
-    $\betastar \in (0.09, 0.13)$ of~\cite{Beau2026a7} unexplained by a factor of $10$--$20$.
-    The gap cannot be closed by refining the Cheeger bound alone, since the Ramanujan property
-    of $X^{p,q}$ implies that Cheeger constants are already near-optimal for the graph
-    combinatorics.
-
-    \begin{remark}[Decoupling from the O4 normalisation]
-      \label{rem:O4-decoupling}
-      The quadratic bound $p(n) \lesssim C n^2$ is the only statement used from~\cite{Beau2026a8}
-      in the present work.
-      Any further normalisation of $\beta$ is purely conventional and does not affect the arguments
-      below.
-    \end{remark}
+    A bound on $\beta$ cannot be recovered by refining the Cheeger inequality alone, since the
+    Ramanujan property of $X^{p,q}$ already makes its Cheeger constants near-optimal for the graph
+    combinatorics --- consistent with O4's finding~\cite{Beau2026a8} that the candidate
+    flux-to-front-size route does not yield one either.
+    This paper does not revisit that route, and imports no bound, normalisation, or intermediate
+    estimate from~\cite{Beau2026a8}; the only external input retained is the axiom [A-cap] itself,
+    $|\partial_t \chi_v| \le c_{\mathrm{BI}}$~\cite{Beau2026c}, used below only to motivate the
+    numerical window~\eqref{eq:admissibility-envelope} that selects trace-selected sectors,
+    as a definitional convention rather than a derived bound (Section~\ref{subsec:admissible-sectors}).
 
     The resolution proposed here is that the relevant quantity is not the raw boundary $\partial S_n$
     but the \emph{trace-productive} boundary: the subset of $\partial S_n$ whose elements
@@ -390,8 +368,8 @@
       By the classical LPS dichotomy, $G = \PSL(2,\F_q)$ when $p$ is a quadratic residue mod $q$, and
       $G = \mathrm{PGL}(2,\F_q)$ otherwise; both cases occur among the $q$ values tested below
       (Table~\ref{tab:group-verification}) and are handled uniformly by everything that follows.
-      O4's bounded-flux constraint $|\partial_t \chi_v| \le c_{\mathrm{BI}}$~\cite{Beau2026a1} supplies
-      the numerical window
+      The [A-cap] bounded-flux constraint $|\partial_t \chi_v| \le c_{\mathrm{BI}}$~\cite{Beau2026a1}
+      supplies the numerical window
       \begin{equation}
         \label{eq:admissibility-envelope}
         0 < d - \mubar \le \lambda^*, \qquad \lambda^* = (\sqrt{d-1}+1)^2,
@@ -454,15 +432,25 @@
     \subsection{Rapid saturation of the vertex-based character-trace span}
       \label{subsec:saturation}
 
-      The following proposition is stated for an arbitrary weighted class-function encoding, since
-      its proof uses only that $\chi_\rho$ is a class function, not the specific meaning or
-      provenance of the weights $\kap$: it applies unchanged to the character-trace weights of
-      Definition~\ref{def:vertex-fingerprint}, and to any other choice of sectors $\Gadm$ and weights
-      $\kap$ a reader may wish to substitute.
+      The following proposition is stated for an arbitrary weighted class-function encoding with
+      real-valued characters, since its proof uses only that $\chi_\rho$ is a real class function,
+      not the specific meaning or provenance of the weights $\kap$: it applies unchanged to the
+      character-trace weights of Definition~\ref{def:vertex-fingerprint}, and to any other choice of
+      real-character sectors $\Gadm$ and weights $\kap$ a reader may wish to substitute.
+      The restriction to real characters is not vacuous for a general finite group, whose
+      irreducible characters can be complex-valued, but it holds for every sector and every $q$
+      tested in this paper (verified numerically alongside Burnside's identity in
+      Section~\ref{sec:group-construction}, and expected on general grounds since $q \equiv 1
+      \pmod 4$ for the tested $q$).
+      A group with complex-valued sectors in $\Gadm$ would require restating $\mathcal R_A$ over
+      $\C$ with the Hermitian inner product $\langle \chi_\rho,\chi_{\rho'}\rangle = \sum_{[g]}
+      |[g]|\,\chi_\rho(g)\overline{\chi_{\rho'}(g)}$ in place of the real one used in the proof below;
+      that case is not needed here and is not treated.
 
       \begin{proposition}[Class-function saturation: dimension bound and finite spanning witness]
         \label{prop:vertex-admissible-saturation}
-        Let $G$ be a finite group, $\Gadm \subset \widehat G$ any subset of irreducible sectors,
+        Let $G$ be a finite group, $\Gadm \subset \widehat G$ any subset of irreducible sectors with
+        $\chi_\rho(g) \in \R$ for every $\rho \in \Gadm$ and every $g \in G$,
         $(\kap)_{\rho \in \Gadm}$ any real weights, and $\piA$, $\PiA(S)$, $\dA S$
         as in Definition~\ref{def:vertex-fingerprint} (in particular, for the character-trace
         sectors and weights of Section~\ref{subsec:admissible-sectors}).
@@ -792,34 +780,34 @@ fit requires.
         \label{fig:O5-StElem-presat}
       \end{figure}
 
-      \begin{remark}[Withdrawn conjecture: matrix-level trace-productive frontier decay]
+      \begin{remark}[Not a viable mechanism: matrix-level trace-productive frontier decay]
         \label{rem:conjecture-withdrawn}
-        The first version of this paper conjectured a matrix-based refinement of
-        Definition~\ref{def:transition-fingerprint} for which
+        A matrix-based refinement of Definition~\ref{def:transition-fingerprint} could in principle
+        posit
         \[
           \rtildeB := \frac{|\partial^{B,\mathrm{mat}}\,\mathrm{sh}_n|}{|\mathrm{sh}_n|}
           \xrightarrow{n \to \infty} 0,
           \qquad
           \frac{dp}{dn} \lesssim \rtildeB \cdot \sqrt{p(n)},
         \]
-        and observed that a power-law ansatz $\rtildeB \sim p(n)^{-\alpha}$ integrates this to
+        so that a power-law ansatz $\rtildeB \sim p(n)^{-\alpha}$ integrates to
         $\betaeff = 1/(1/2+\alpha)$, with the window $\betastar \in (0.09,0.13)$ requiring
         $\alpha \approx 9.5$.
-        This conjecture is withdrawn as a candidate mechanism, for two independent reasons.
+        This is not a viable candidate mechanism, for two independent reasons.
         First, none of the transition-based constructions examined here --- character-based,
         fixed-dimensional matrix, or Steinberg --- supplies a pre-saturation regime wide enough to
         even measure a decay exponent $\alpha$, let alone one near $9.5$
-        (Remarks~\ref{rem:numerical-B} and~\ref{rem:matrix-B}); the conjecture's premise has no
-        surviving candidate substrate in the present corpus.
-        Second, the conjectured relation $\betaeff = 1/(1/2+\alpha)$ is exactly the functional form
-        of the expander-derived capacity-to-rate conversion law that the companion Span-Growth
+        (Remarks~\ref{rem:numerical-B} and~\ref{rem:matrix-B}); the premise has no surviving
+        candidate substrate in the present corpus.
+        Second, the relation $\betaeff = 1/(1/2+\alpha)$ is exactly the functional form of the
+        expander-derived capacity-to-rate conversion law that the companion Span-Growth
         Note~\cite{Beau2026sgn} proves has no native carrier when applied to a different
         admissibility substrate (the Heisenberg measurement graph), for the corpus-defined closure,
         frontier, pair observable, and exponent coordinates it audits.
-        That result does not by itself refute the present $\PSL(2,\F_q)/\mathrm{PGL}(2,\F_q)$ construction, which
-        \cite{Beau2026sgn} does not address, but it removes any presumption that this functional form
-        transfers natively between admissibility substrates, and so removes the conjecture's
-        remaining motivation as a mechanism to pursue rather than merely a formal possibility.
+        That result does not by itself refute the present $\PSL(2,\F_q)/\mathrm{PGL}(2,\F_q)$
+        construction, which \cite{Beau2026sgn} does not address, but it removes any presumption that
+        this functional form transfers natively between admissibility substrates, and so removes
+        the remaining motivation to pursue it as a mechanism rather than a formal possibility.
       \end{remark}
 
     \subsection{Summary of contributions}
@@ -862,7 +850,7 @@ fit requires.
       fast to measure anything.
       Whether a dynamical redundancy mechanism in a matrix-valued space of growing dimension could
       succeed where these constructions do not remains open; it is not established by the results
-      above, and the specific conjectural form previously proposed for it is withdrawn
+      above, and the specific candidate functional form examined for it is not viable
       (Remark~\ref{rem:conjecture-withdrawn}).
 
     \subsection{Structural implications}
@@ -946,11 +934,10 @@ fit requires.
         a sufficiently rich modal dynamics for the cascade exponent; they do not construct, select, or
         even locate the mode-resolved spectral frontier that a viable mechanism would presumably need
         (Remark~\ref{rem:trace-not-eigenvalue}).
-        The conjectural matrix-level redundancy law proposed in the first version of this paper is
-        withdrawn (Remark~\ref{rem:conjecture-withdrawn}), both because no construction tested here
-        supplies the regime in which it could be measured, and because its functional form
-        coincides with a conversion law shown elsewhere in the corpus not to transfer natively
-        between admissibility substrates.
+        A candidate matrix-level redundancy law is not viable here (Remark~\ref{rem:conjecture-withdrawn}),
+        both because no construction tested supplies the regime in which it could be measured, and
+        because its functional form coincides with a conversion law shown elsewhere in the corpus
+        not to transfer natively between admissibility substrates.
         A genuine mode-resolved (eigenvalue-level, not trace-level) frontier is a distinct and harder
         question, left open for a future paper under its own frozen contract, not extending this one:
         it would require actual matrix representations of $G$, the true blocks

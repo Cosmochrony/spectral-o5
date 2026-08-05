@@ -3,7 +3,7 @@
 SpectralO5 -- Numerical Computations
 ======================================
 All scripts supporting the paper
-  "Finite Character-Trace Saturation and the Limits of Vertex-Based Cascade Dynamics"
+  "Finite Character-Trace Saturation and the Limits of Vertex-Based Class-Function Cascades"
   J. Beau, Cosmochrony O-Series, 2026
 
 Sections:
@@ -396,7 +396,9 @@ def dixon_character_table(perm_group):
 # small part of their conjugacy class (size 182/306/870 for q=13/17/29), so
 # A_rho is generally not central and has (up to dim(rho)) distinct genuine
 # eigenvalues. For q=13, the actual graph adjacency spectrum has 55 distinct
-# eigenvalues against the 15 sector-trace values computed here. Every
+# eigenvalues against only 9 distinct trace averages across the 15 sectors
+# (see graph_adjacency_distinct_eigenvalues() and the live check in
+# figure1_A_vs_B()). Every
 # "trace-selected"/kappa/M_tr quantity below is named and used accordingly:
 # none of it is identified with a Laplacian eigenvalue, a spectral envelope,
 # or a Ramanujan-admissible mode. See SpectralO5.tex, Remark
@@ -617,8 +619,8 @@ def figure1_A_vs_B(q=13, p=5, outfile='fig1_A_vs_B.png'):
     # the paper (Remark rem:trace-not-eigenvalue): computed here, not just
     # asserted in prose.
     n_eig = graph_adjacency_distinct_eigenvalues(model.adj, model.n)
-    lam_all = model.d - model.d * model.chartable[:, model.gen_class] / model.dims
-    n_trace = distinct_count(lam_all)
+    mu_all = model.d * model.chartable[:, model.gen_class] / model.dims
+    n_trace = distinct_count(mu_all)
     print(f"  eigenvalue-gap check: {n_eig} distinct graph eigenvalues vs "
           f"{n_trace} distinct trace averages across {model.r} sectors")
     assert n_eig == 55 and n_trace == 9, (
