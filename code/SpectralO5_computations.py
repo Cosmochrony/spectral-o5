@@ -364,8 +364,8 @@ def dixon_character_table(perm_group):
   burnside = np.sum((dims.real) ** 2)
   if abs(burnside - Gorder) > 1e-3 * Gorder:
     raise AssertionError(f"Burnside check failed: sum(dim^2)={burnside}, |G|={Gorder}")
-  # Verification 3: character values and dimensions must be real (holds
-  # here because q = 1 mod 4 for every q tested by this paper).
+  # Verification 3: character values and dimensions must be real (verified
+  # numerically for every q tested by this paper; not assumed a priori).
   if np.max(np.abs(dims.imag)) > 1e-6 or np.max(np.abs(chartable.imag)) > 1e-6:
     raise AssertionError("character table has non-negligible imaginary part")
   chartable = chartable.real

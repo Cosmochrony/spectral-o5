@@ -77,8 +77,8 @@ None of the constructions tested supplies a viable mechanism for the smallness o
   tree-like regime shared by all three graphs at that radius --- leaving no pre-saturation window
   from which any exponent could be measured.
 
-A matrix-level redundancy law of the form $\beta_{\mathrm{eff}}=1/(1/2+\alpha)$ is not a viable
-candidate mechanism here: no construction examined supplies the regime in which it could be
+A matrix-level redundancy law of the form $\beta_{\mathrm{eff}}=1/(1/2+\alpha)$ is not supported by
+the constructions examined here: no construction examined supplies the regime in which it could be
 measured, and it shares its functional form with an expander-derived capacity-to-rate conversion
 law that the companion *Span-Growth Note* proves has no native carrier when applied to a different
 admissibility substrate (the Heisenberg measurement graph).
@@ -125,8 +125,8 @@ This paper is:
   spectral eigenvalues (Section "Trace Selection Is Not Spectral Admissibility" above);
 - a set of $q$-finite numerical observations about transition-based fingerprints, none of which
   constitutes a structural derivation of $\betastar$;
-- an explicit account of why one candidate matrix-level redundancy mechanism is not viable, with
-  the reasons stated.
+- an explicit account of why one candidate matrix-level redundancy mechanism is not supported by
+  the constructions examined here, with the reasons stated.
 
 It does **not** claim to explain the smallness of $\betastar$, does **not** claim to select
 spectrally admissible modes in the proven sense, does **not** claim a $q$-structural saturation law

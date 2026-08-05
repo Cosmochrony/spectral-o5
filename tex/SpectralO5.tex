@@ -124,11 +124,11 @@
     $\mathbb{P}^1(\F_q)$ saturates its full ambient space within the first two to three
     graph-distance shells for every tested $q\in\{13,17,29\}$, leaving no pre-saturation window from
     which to extract an exponent.
-    None of these constructions yields a viable mechanism for $\betastar$, nor does a matrix-level
-    redundancy law of the form $\betaeff=1/(1/2+\alpha)$: it shares its functional form with a
-    conversion law the companion Span-Growth Note proves does not transfer natively to a different
-    admissibility substrate, and no construction here supplies a regime in which $\alpha$ could even
-    be measured.
+    None of these constructions yields a viable mechanism for $\betastar$.
+    A matrix-level redundancy law of the form $\betaeff=1/(1/2+\alpha)$ is not supported by the
+    constructions examined here: no construction here supplies a regime in which $\alpha$ could even
+    be measured, and its functional form coincides with a conversion law the companion Span-Growth
+    Note proves does not transfer natively to a different admissibility substrate.
     O5's contribution is an obstruction result: finite character-trace encodings of the vertex
     boundary cannot supply the rich, mode-resolved novelty a viable mechanism would need; the genuine
     eigenvalue-level frontier remains unconstructed, left open for a future paper.
@@ -230,7 +230,7 @@
       $q \in \{13,17,29\}$, leaving no pre-saturation window from which any effective exponent could
       be extracted (Section~\ref{subsec:contributions-summary}).
 
-      \textbf{Not a viable candidate mechanism (Section~\ref{subsec:structural-implications}).}
+      \textbf{Not supported by the constructions examined (Section~\ref{subsec:structural-implications}).}
       A matrix-level redundancy law linking a transitional-frontier decay rate to $\betaeff$ is not
       supported here: no construction examined supplies the pre-saturation regime such a law would
       need to be measured, and its functional form coincides with an expander-derived conversion
@@ -368,18 +368,19 @@
       By the classical LPS dichotomy, $G = \PSL(2,\F_q)$ when $p$ is a quadratic residue mod $q$, and
       $G = \mathrm{PGL}(2,\F_q)$ otherwise; both cases occur among the $q$ values tested below
       (Table~\ref{tab:group-verification}) and are handled uniformly by everything that follows.
-      The [A-cap] bounded-flux constraint $|\partial_t \chi_v| \le c_{\mathrm{BI}}$~\cite{Beau2026a1}
-      supplies the numerical window
+      Motivated by the [A-cap] bounded-flux constraint $|\partial_t \chi_v| \le
+      c_{\mathrm{BI}}$~\cite{Beau2026a1} and by the Ramanujan spectral threshold used for the
+      \emph{graph's own} adjacency spectrum in~\cite{Beau2026a1}, we adopt the numerical window
       \begin{equation}
         \label{eq:admissibility-envelope}
         0 < d - \mubar \le \lambda^*, \qquad \lambda^* = (\sqrt{d-1}+1)^2,
       \end{equation}
-      the value $\lambda^*$ being the Ramanujan spectral bound on the \emph{graph's own} adjacency
-      spectrum in~\cite{Beau2026a1}.
-      We reuse this numerical window here purely as a definitional convention, applied to the
-      character-trace quantity $\mubar$ of Remark~\ref{rem:trace-not-eigenvalue} rather than to a
-      proven eigenvalue: a sector $\rho$ is \emph{trace-selected} if $0 < d-\mubar \le \lambda^*$, and
-      we write $\Gadm \subset \widehat{G}$ for the set of trace-selected sectors.
+      purely as a definitional convention, applied to the character-trace quantity $\mubar$ of
+      Remark~\ref{rem:trace-not-eigenvalue} rather than to a proven eigenvalue: neither [A-cap] nor
+      the Ramanujan threshold is claimed to derive this window for $\mubar$, only to motivate its
+      numerical value.
+      A sector $\rho$ is \emph{trace-selected} if $0 < d-\mubar \le \lambda^*$, and we write
+      $\Gadm \subset \widehat{G}$ for the set of trace-selected sectors.
       No claim is made that this window selects spectrally admissible modes of the group's
       representation theory; it selects sectors whose character-trace average falls in the range that
       would be the Ramanujan-admissible range if $\mubar$ were an eigenvalue of $A_\rho$, which
@@ -439,9 +440,8 @@
       real-character sectors $\Gadm$ and weights $\kap$ a reader may wish to substitute.
       The restriction to real characters is not vacuous for a general finite group, whose
       irreducible characters can be complex-valued, but it holds for every sector and every $q$
-      tested in this paper (verified numerically alongside Burnside's identity in
-      Section~\ref{sec:group-construction}, and expected on general grounds since $q \equiv 1
-      \pmod 4$ for the tested $q$).
+      tested in this paper, verified numerically alongside Burnside's identity in
+      Section~\ref{sec:group-construction}.
       A group with complex-valued sectors in $\Gadm$ would require restating $\mathcal R_A$ over
       $\C$ with the Hermitian inner product $\langle \chi_\rho,\chi_{\rho'}\rangle = \sum_{[g]}
       |[g]|\,\chi_\rho(g)\overline{\chi_{\rho'}(g)}$ in place of the real one used in the proof below;
@@ -780,7 +780,7 @@ fit requires.
         \label{fig:O5-StElem-presat}
       \end{figure}
 
-      \begin{remark}[Not a viable mechanism: matrix-level trace-productive frontier decay]
+      \begin{remark}[Not supported by the constructions examined: matrix-level trace-productive frontier decay]
         \label{rem:conjecture-withdrawn}
         A matrix-based refinement of Definition~\ref{def:transition-fingerprint} could in principle
         posit
@@ -793,7 +793,7 @@ fit requires.
         so that a power-law ansatz $\rtildeB \sim p(n)^{-\alpha}$ integrates to
         $\betaeff = 1/(1/2+\alpha)$, with the window $\betastar \in (0.09,0.13)$ requiring
         $\alpha \approx 9.5$.
-        This is not a viable candidate mechanism, for two independent reasons.
+        This is not supported by the constructions examined here, for two independent reasons.
         First, none of the transition-based constructions examined here --- character-based,
         fixed-dimensional matrix, or Steinberg --- supplies a pre-saturation regime wide enough to
         even measure a decay exponent $\alpha$, let alone one near $9.5$
@@ -850,8 +850,8 @@ fit requires.
       fast to measure anything.
       Whether a dynamical redundancy mechanism in a matrix-valued space of growing dimension could
       succeed where these constructions do not remains open; it is not established by the results
-      above, and the specific candidate functional form examined for it is not viable
-      (Remark~\ref{rem:conjecture-withdrawn}).
+      above, and the specific candidate functional form examined for it is not supported by any
+      construction tested (Remark~\ref{rem:conjecture-withdrawn}).
 
     \subsection{Structural implications}
       \label{subsec:structural-implications}
@@ -934,8 +934,9 @@ fit requires.
         a sufficiently rich modal dynamics for the cascade exponent; they do not construct, select, or
         even locate the mode-resolved spectral frontier that a viable mechanism would presumably need
         (Remark~\ref{rem:trace-not-eigenvalue}).
-        A candidate matrix-level redundancy law is not viable here (Remark~\ref{rem:conjecture-withdrawn}),
-        both because no construction tested supplies the regime in which it could be measured, and
+        A candidate matrix-level redundancy law is not supported by the constructions examined here
+        (Remark~\ref{rem:conjecture-withdrawn}), both because no construction tested supplies the
+        regime in which it could be measured, and
         because its functional form coincides with a conversion law shown elsewhere in the corpus
         not to transfer natively between admissibility substrates.
         A genuine mode-resolved (eigenvalue-level, not trace-level) frontier is a distinct and harder
