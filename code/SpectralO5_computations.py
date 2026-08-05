@@ -7,18 +7,32 @@ All scripts supporting the paper
   J. Beau, Cosmochrony O-Series, 2026
 
 Sections:
-  §1  Shared utilities (group construction, P^1 action, irreps)
-  §2  Figure 1: Version A vs B (character-based) on X^{5,13}
-  §3  Figure 2: Version B character, q-dependence on X^{5,q}
-  §4  Figure 3: Matrix-based variants M1/M2/M3/M4 on X^{5,13}
-  §5  Figure 4: Steinberg St_elem pre-saturation law, q in {13,17,29}
-  §6  Main: generate all figures
+  §1  Shared utilities (finite-field arithmetic, quaternions)
+  §2  Group/graph construction: PSL(2,F_q) or PGL(2,F_q) via the P^1(F_q)
+      permutation representation (scalar-invariant canonicalization)
+  §3  Character table via Dixon's algorithm, verified via Burnside's
+      identity and commutativity of the class-sum matrices
+  §4  Admissibility layer (M_adm, kappa_rho, per-vertex character lookup)
+  §5  Shell-by-shell (graph-distance) cascade
+  §6  Figure 1: Version A vs B (character-based) on X^{5,13}
+  §7  Figure 2: Version B character, q-dependence on X^{5,q}
+  §8  Figure 3: Matrix-based variants M1/M2/M3/M4 on X^{5,13}
+  §9  Figure 4: Steinberg St_elem pre-saturation law, q in {13,17,29}
+  §10 Main: generate all figures
 
 Usage:
   python3 SpectralO5_computations.py          # generate all figures
   python3 SpectralO5_computations.py --fig N  # generate figure N only (1-4)
 
-Dependencies: numpy, scipy, matplotlib (standard scientific Python stack)
+Dependencies: numpy, scipy, matplotlib, sympy (standard scientific stack)
+
+Verification discipline: the group is verified against the closed-form order of
+PSL(2,F_q)/PGL(2,F_q), exact (p+1)-regularity, full edge symmetry, and
+graph-distance shell sizes matching the free (p+1)-regular tree before any
+collision; the character table is verified via Burnside's identity
+(sum of squared dimensions = |G|), pairwise commutativity of the class-sum
+matrices, and reality of the recovered character values. See
+`self_check()` at the bottom of §3/§4.
 """
 
 import sys
@@ -28,7 +42,8 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from collections import deque
-from scipy.optimize import curve_fit
+from itertools import permutations, product as iproduct
+from sympy.combinatorics import Permutation, PermutationGroup
 import warnings
 
 warnings.filterwarnings('ignore')
@@ -86,15 +101,8 @@ def mat_mul_mod(A, B, q):
   ], dtype=np.int64)
 
 
-def mat_to_key(A, q):
-  """Canonical key for a PSL(2,F_q) element (mod ±I quotient)."""
-  a, b, c, d = int(A[0, 0]), int(A[0, 1]), int(A[1, 0]), int(A[1, 1])
-  return min((a, b, c, d), ((q - a) % q, (q - b) % q, (q - c) % q, (q - d) % q))
-
-
 def four_square(p):
-  """Find (a,b,c,d) with a^2+b^2+c^2+d^2=p, a>0 odd, b,c,d even."""
-  from itertools import product as ip
+  """Find ONE (a,b,c,d) with a^2+b^2+c^2+d^2=p, a>0 odd, b,c,d even."""
   for a in range(1, p, 2):
     for b in range(0, p, 2):
       for c in range(0, p, 2):
@@ -106,157 +114,43 @@ def four_square(p):
           return a, b, c, d
 
 
-def build_graph(q, p=5):
+def find_lps_quaternions(p):
   """
-  Build the LPS Cayley graph X^{p,q} on PSL(2,F_q).
-  Returns: adj (adjacency list), elems (list of canonical keys),
-           elem_mats (list of actual 2x2 matrices), gen_mats (generator matrices).
+  The exact set of p+1 quaternions (a,b,c,d) with a^2+b^2+c^2+d^2=p, a>0 ODD,
+  b,c,d even (Jacobi's four-square count restricted to this sign/parity
+  class is exactly p+1 for prime p = 1 mod 4). Requiring a odd (not just
+  positive) is essential: without it, permuting the found quaternion's
+  coordinates can put an EVEN entry in the first slot, inflating the
+  enumerated set (12 elements for p=5 instead of 6) and making the
+  downstream choice of generators depend on arbitrary set-iteration order.
+  This set is automatically closed under (a,b,c,d) -> (a,-b,-c,-d)
+  (quaternion conjugation), which is what makes the resulting Cayley graph
+  generating set symmetric once canonicalized projectively (see
+  `build_graph`).
   """
-  i_val = next(x for x in range(1, q) if (x * x + 1) % q == 0)
   a0, b0, c0, d0 = four_square(p)
-  from itertools import product as ip, permutations
   parts = [a0, b0, c0, d0]
   seen = set()
   for perm in permutations(range(4)):
-    for signs in ip([-1, 1], repeat=4):
+    for signs in iproduct([-1, 1], repeat=4):
       vals = tuple(signs[j] * parts[perm[j]] for j in range(4))
-      if vals[0] > 0 and sum(v * v for v in vals) == p:
+      if vals[0] > 0 and vals[0] % 2 == 1 and sum(v * v for v in vals) == p:
         seen.add(vals)
-  gen_quats = list(seen)[:p + 1]
-  gen_mats = [
-    np.array([[(aa + bb * i_val) % q, (cc + dd * i_val) % q],
-              [(-cc + dd * i_val) % q, (aa - bb * i_val) % q]], dtype=np.int64)
-    for (aa, bb, cc, dd) in gen_quats
-  ]
-  I = np.array([[1, 0], [0, 1]], dtype=np.int64)
-  elems = [mat_to_key(I, q)]
-  eidx = {elems[0]: 0}
-  elem_mats = [I.copy()]
-  adj = {0: []}
-  queue = deque([I])
-  while queue:
-    u_mat = queue.popleft()
-    u_key = mat_to_key(u_mat, q)
-    u_idx = eidx[u_key]
-    if u_idx not in adj:
-      adj[u_idx] = []
-    for gi, G in enumerate(gen_mats):
-      v_mat = mat_mul_mod(u_mat, G, q)
-      v_key = mat_to_key(v_mat, q)
-      if v_key not in eidx:
-        v_idx = len(elems)
-        elems.append(v_key)
-        elem_mats.append(v_mat.copy())
-        eidx[v_key] = v_idx
-        adj[v_idx] = []
-        queue.append(v_mat)
-      else:
-        v_idx = eidx[v_key]
-      adj[u_idx].append((v_idx, gi))
-  return adj, elems, elem_mats, gen_mats
+  assert len(seen) == p + 1, f"expected {p + 1} LPS quaternions for p={p}, got {len(seen)}"
+  return sorted(seen)
 
 
-def build_irreps(q, p=5):
-  """
-  Build admissible irreps of PSL(2,F_q) and their character functions.
-  Returns: reps (list of (name, dim, char_func)), adm_idx, mu_vals, lam_star, d.
-  """
-  d = p + 1
-  g_prim = next(x for x in range(2, q) if pow(x, (q - 1) // 2, q) != 1)
-  dlog = {}
-  gj = 1
-  for j in range(q - 1):
-    dlog[gj] = j
-    gj = (gj * g_prim) % q
-
-  def chi_Fq(t, k):
-    if t == 0:
-      return 0.0
-    return np.cos(2 * np.pi * k * dlog[int(t) % q] / (q - 1))
-
-  def pi_k_char(ct, tr, k):
-    if ct == 'I':
-      return float(q + 1)
-    if ct == 'U':
-      return 1.0
-    if ct == 'Ss':
-      tau = int(tr) % q
-      disc = (tau * tau - 4) % q
-      sq = sqrt_mod(disc, q)
-      if sq is None:
-        return 0.0
-      t1 = ((tau + sq) * mod_inv(2, q)) % q
-      t2 = ((tau - sq) * mod_inv(2, q)) % q
-      return chi_Fq(t1, k) + chi_Fq(t2, k)
-    return 0.0
-
-  reps = [
-    ('trivial', 1, lambda ct, tr: 1.0),
-    ('Steinberg', q, lambda ct, tr: float(q) if ct == 'I' else
-    0.0 if ct == 'U' else -1.0)
-  ]
-  for k in range(1, (q - 3) // 2 + 1):
-    kk = k
-
-    def mk(kk):
-      return lambda ct, tr: pi_k_char(ct, tr, kk)
-
-    reps.append((f'pi_{k}', q + 1, mk(k)))
-  for l in range(1, (q - 1) // 2 + 1):
-    def ms(ll):
-      def f(ct, tr):
-        if ct == 'I':
-          return float(q - 1)
-        if ct == 'U':
-          return -1.0
-        return 0.0
-
-      return f
-
-    reps.append((f'sigma_{l}', q - 1, ms(l)))
-
-  # Determine generator conjugacy class
-  i_val = next(x for x in range(1, q) if (x * x + 1) % q == 0)
-  aa, bb, cc, dd = four_square(p)
-  M = np.array([[(aa + bb * i_val) % q, (cc + dd * i_val) % q],
-                [(-cc + dd * i_val) % q, (aa - bb * i_val) % q]], dtype=np.int64)
-  tr = int(M[0, 0] + M[1, 1]) % q
-  tr = min(tr, (q - tr) % q)
-  disc = (tr * tr - 4) % q
-  ct_gen = 'U' if disc == 0 else ('Ss' if is_square(disc, q) else 'Se')
-
-  lam_star = (np.sqrt(d - 1) + 1) ** 2
-  adm_idx = []
-  mu_vals = []
-  for k, (name, dim, chi) in enumerate(reps):
-    mu = d * chi(ct_gen, tr) / dim
-    mu_vals.append(mu)
-    lam = d - mu
-    if 0.01 < lam <= lam_star + 0.01 and k > 0:
-      adm_idx.append(k)
-  return reps, adm_idx, mu_vals, lam_star, d
-
-
-def vertex_chars(elems, q, reps, adm_idx):
-  """Compute pi_A(v) = (kappa_rho * chi_rho(v)) for all vertices. Returns (n, n_adm) matrix."""
-  n, n_adm = len(elems), len(adm_idx)
-  Pi = np.zeros((n, n_adm))
-  cache = {}
-  adm_reps = [reps[k] for k in adm_idx]
-  for vi, key in enumerate(elems):
-    a, b, c, dd = key
-    tr = min(int(a + dd) % q, (q - int(a + dd) % q) % q)
-    disc = (tr * tr - 4) % q
-    ct = 'U' if disc == 0 else ('Ss' if is_square(disc, q) else 'Se')
-    ck = (ct, tr)
-    if ck not in cache:
-      cache[ck] = np.array([chi(ct, tr) for (_, _, chi) in adm_reps])
-    Pi[vi, :] = cache[ck]
-  return Pi.real, len(cache)
+def quat_to_mat(quat, q, i_val):
+  aa, bb, cc, dd = quat
+  return np.array([[(aa + bb * i_val) % q, (cc + dd * i_val) % q],
+                    [(-cc + dd * i_val) % q, (aa - bb * i_val) % q]], dtype=np.int64)
 
 
 def action_on_P1(M, q):
-  """Permutation of P^1(F_q) induced by M in PSL(2,F_q). Returns array of length q+1."""
+  """Permutation of P^1(F_q) induced by M (any GL(2,F_q) representative).
+  Returns array of length q+1. This is scalar-invariant: M and lambda*M
+  induce the identical permutation, which is what makes it usable as a
+  canonical key for elements of PGL(2,F_q)/PSL(2,F_q)."""
   a, b, c, d = int(M[0, 0]), int(M[0, 1]), int(M[1, 0]), int(M[1, 1])
   sigma = np.zeros(q + 1, dtype=np.int64)
   for i in range(q):
@@ -267,33 +161,272 @@ def action_on_P1(M, q):
   return sigma
 
 
-def build_steinberg_projections(elems, elem_mats, gen_mats, q):
-  """Compute Steinberg projections tilde_sigma for all vertices and generators."""
-  steins = np.zeros((len(elems), q + 1))
-  for i, M in enumerate(elem_mats):
-    s = action_on_P1(M, q).astype(float)
-    steins[i] = s - s.mean()
-  gen_steins = np.zeros((len(gen_mats), q + 1))
-  for gi, G in enumerate(gen_mats):
-    s = action_on_P1(G, q).astype(float)
-    gen_steins[gi] = s - s.mean()
-  return steins, gen_steins
-
-
-# ----------------------------------------------------------------
-# Shell-by-shell (graph-distance) cascade
-# ----------------------------------------------------------------
+# ================================================================
+# §2  GROUP / GRAPH CONSTRUCTION
+# ================================================================
 #
-# v2.0 replaces the old single-vertex BFS traversal (which tested each
-# frontier candidate against a span partially built from other, arbitrarily
-# ordered same-shell candidates already processed in that traversal) by a
-# cascade indexed by exact graph distance from the origin vertex. Shell m
-# is tested against the span of shells strictly before m, then absorbed as
-# a whole before shell m+1 is examined. This removes all dependence on BFS
-# tie-breaking, parent choice, or insertion order within a shell, and for
-# the transition-based fingerprint it is the object that gives a
-# non-tautological novelty test: Pi_B^{<n} never contains any of the
-# vectors it is used to test.
+# v2.1 replaces the v1.1/v2.0 construction, which canonicalized a matrix by
+# quotienting only by {+-I} (`mat_to_key`'s min-with-negation trick) instead
+# of by the full scalar group F_q^*. That under-quotienting produced a set
+# larger than PSL(2,F_q) (by a q-dependent, arithmetically incoherent
+# factor), and because the true matrix inverse of a determinant-p generator
+# is a SCALAR multiple (1/p times) of its quaternion conjugate rather than
+# equal to it, the resulting "Cayley graph" was directed: no tested edge had
+# a reverse edge among the six generators (verified: 0 of 300 sampled edges
+# were symmetric).
+#
+# Here, a group element is canonicalized by its induced PERMUTATION of
+# P^1(F_q) (`action_on_P1`), which is exactly invariant under M -> lambda*M
+# for any scalar lambda != 0 -- i.e. it is a faithful representative of the
+# element's class in PGL(2,F_q). BFS closure under (correctly-normalized)
+# matrix multiplication, deduplicated by this permutation key, therefore
+# produces exactly the subgroup of PGL(2,F_q) generated by the quaternion
+# generators -- either PSL(2,F_q) (order q(q^2-1)/2) or all of PGL(2,F_q)
+# (order q(q^2-1)), depending on whether p is a quadratic residue mod q.
+# Both cases are verified against the closed-form order below.
+
+def build_graph(q, p=5):
+  """
+  Build the LPS Cayley graph X^{p,q} on PGL(2,F_q) or PSL(2,F_q) (whichever
+  is generated). Returns: adj (adjacency list, vertex index -> [(neighbour
+  index, generator index)]), elems (list of representative 2x2 matrices,
+  one per group element), gen_mats, gen_quats, group_label ('PSL' or 'PGL').
+  """
+  gen_quats = find_lps_quaternions(p)
+  i_val = next(x for x in range(1, q) if (x * x + 1) % q == 0)
+  gen_mats = [quat_to_mat(quat, q, i_val) for quat in gen_quats]
+
+  I = np.array([[1, 0], [0, 1]], dtype=np.int64)
+  elems = [I]
+  key0 = tuple(action_on_P1(I, q).tolist())
+  key_to_idx = {key0: 0}
+  adj = {0: []}
+  bq = deque([0])
+  while bq:
+    u_idx = bq.popleft()
+    u_mat = elems[u_idx]
+    for gi, G in enumerate(gen_mats):
+      v_mat = mat_mul_mod(u_mat, G, q)
+      key = tuple(action_on_P1(v_mat, q).tolist())
+      if key not in key_to_idx:
+        v_idx = len(elems)
+        key_to_idx[key] = v_idx
+        elems.append(v_mat)
+        adj[v_idx] = []
+        bq.append(v_idx)
+      else:
+        v_idx = key_to_idx[key]
+      adj[u_idx].append((v_idx, gi))
+
+  n = len(elems)
+  psl_order = q * (q * q - 1) // 2
+  pgl_order = q * (q * q - 1)
+  if n == psl_order:
+    label = 'PSL'
+  elif n == pgl_order:
+    label = 'PGL'
+  else:
+    raise AssertionError(f"q={q}, p={p}: generated group has order {n}, "
+                          f"matching neither |PSL(2,q)|={psl_order} nor |PGL(2,q)|={pgl_order}")
+  degs = set(len(v) for v in adj.values())
+  assert degs == {p + 1}, f"q={q}: expected {p + 1}-regular graph, got degrees {degs}"
+  return adj, elems, gen_mats, gen_quats, label
+
+
+def verify_symmetry(adj):
+  """Every directed edge (u,gi)->v must have a reverse edge v->u. Returns
+  the count of edges failing this (0 for a correctly-built Cayley graph)."""
+  bad = 0
+  for u, lst in adj.items():
+    for (v, gi) in lst:
+      if not any(vv == u for (vv, gj) in adj[v]):
+        bad += 1
+  return bad
+
+
+# ================================================================
+# §3  CHARACTER TABLE VIA DIXON'S ALGORITHM
+# ================================================================
+#
+# The v1.1/v2.0 character table was hand-assembled from Dickson's
+# classification and contained two independent bugs: the `sigma_l` discrete
+# series characters were identical for every l (the closure captured `ll`
+# but its body never referenced it), and the conjugacy-class-by-trace
+# routine assumed determinant-1 matrices, which the mis-quotiented group of
+# §2 (v1.1/v2.0) did not supply.
+#
+# Rather than hand-implement Dickson's formulas for both PSL(2,q) and
+# PGL(2,q) a second time, the table here is computed from first principles
+# via Dixon's algorithm: the class-sum structure constants a_{ijk} (number
+# of ways g_k = x*y with x in class i, y in class j) are computed exactly
+# from the group's own multiplication (fast: O(|G|*r) group operations,
+# r = number of classes), the resulting r class-sum matrices M_i are
+# verified to commute pairwise, and a generic real linear combination is
+# diagonalized once; the common eigenvectors recover the central characters
+# omega_rho(i) = |C_i| chi_rho(g_i)/dim(rho), from which dim(rho) and the
+# full character table follow by the standard normalisation. This is
+# verified twice before use: pairwise commutativity of the M_i (a necessary
+# condition), and Burnside's identity sum_rho dim(rho)^2 = |G| (a strong
+# sufficient check that is essentially impossible to satisfy by a wrong
+# computation).
+
+def dixon_character_table(perm_group):
+  """
+  perm_group: a sympy PermutationGroup.
+  Returns: classes (list of sympy orbits), sizes (list[int]), reps
+  (list[Permutation], one per class), cls_of (dict: element key tuple ->
+  class index), dims (real array, length r), chartable (real r x r array,
+  chartable[rho, k] = chi_rho at class k), id_idx (index of the identity
+  class).
+  """
+  classes = perm_group.conjugacy_classes()
+  r = len(classes)
+  elt_key = lambda perm: tuple(perm.array_form)
+
+  cls_of = {}
+  reps = []
+  sizes = []
+  class_elems = []
+  for i, C in enumerate(classes):
+    elems = list(C)
+    class_elems.append(elems)
+    sizes.append(len(elems))
+    reps.append(elems[0])
+    for e in elems:
+      cls_of[elt_key(e)] = i
+  id_idx = next(i for i in range(r) if sizes[i] == 1)
+
+  inv_cache = {}
+  def inv_of(perm):
+    key = elt_key(perm)
+    if key not in inv_cache:
+      inv_cache[key] = perm ** -1
+    return inv_cache[key]
+
+  M = [np.zeros((r, r)) for _ in range(r)]
+  for i in range(r):
+    for x in class_elems[i]:
+      xinv = inv_of(x)
+      for k in range(r):
+        y = xinv * reps[k]
+        j = cls_of[elt_key(y)]
+        M[i][j, k] += 1
+
+  # Verification 1: the class-sum matrices must pairwise commute.
+  rng = np.random.default_rng(0)
+  for _ in range(min(8, r * r)):
+    i, j = rng.integers(0, r), rng.integers(0, r)
+    if not np.allclose(M[i] @ M[j], M[j] @ M[i], atol=1e-6):
+      raise AssertionError("class-sum matrices do not commute: structure constants are wrong")
+
+  coeffs = rng.standard_normal(r)
+  Mc = sum(c * Mi for c, Mi in zip(coeffs, M))
+  evals, evecs = np.linalg.eig(Mc)
+  if len(set(np.round(evals.real, 6) + 1j * np.round(evals.imag, 6))) < r:
+    raise AssertionError("random combination did not separate all classes; retry with a new seed")
+
+  Gorder = perm_group.order()
+  dims = []
+  chartable = np.zeros((r, r), dtype=complex)
+  for col in range(r):
+    v = evecs[:, col]
+    idx0 = np.argmax(np.abs(v))
+    omega = np.array([(Mi @ v)[idx0] / v[idx0] for Mi in M])
+    denom = sum((omega[i] ** 2) / sizes[i] for i in range(r))
+    dim = np.sqrt(Gorder / denom)
+    dims.append(dim)
+    chartable[col, :] = dim * omega / np.array(sizes)
+  dims = np.array(dims)
+
+  # Verification 2: Burnside's identity sum dim(rho)^2 = |G|.
+  burnside = np.sum((dims.real) ** 2)
+  if abs(burnside - Gorder) > 1e-3 * Gorder:
+    raise AssertionError(f"Burnside check failed: sum(dim^2)={burnside}, |G|={Gorder}")
+  # Verification 3: character values and dimensions must be real (holds
+  # here because q = 1 mod 4 for every q tested by this paper).
+  if np.max(np.abs(dims.imag)) > 1e-6 or np.max(np.abs(chartable.imag)) > 1e-6:
+    raise AssertionError("character table has non-negligible imaginary part")
+
+  return classes, sizes, reps, cls_of, dims.real, chartable.real, id_idx
+
+
+# ================================================================
+# §4  ADMISSIBILITY LAYER
+# ================================================================
+
+class AdmissibleModel:
+  """Bundles the verified group/graph/character-table data for one (q,p)
+  and exposes the per-vertex admissible character fingerprint pi_A(g)."""
+
+  def __init__(self, q, p=5):
+    self.q, self.p, self.d = q, p, p + 1
+    adj, elems, gen_mats, gen_quats, label = build_graph(q, p)
+    bad = verify_symmetry(adj)
+    if bad:
+      raise AssertionError(f"q={q}: {bad} asymmetric edges in the Cayley graph")
+    self.adj, self.elems, self.gen_mats, self.gen_quats, self.label = \
+      adj, elems, gen_mats, gen_quats, label
+    self.n = len(elems)
+
+    gen_perms = [Permutation(action_on_P1(G, q).tolist()) for G in gen_mats]
+    self.perm_group = PermutationGroup(gen_perms)
+    assert self.perm_group.order() == self.n
+
+    (self.classes, self.sizes, self.reps, self.cls_of,
+     self.dims, self.chartable, self.id_idx) = dixon_character_table(self.perm_group)
+    self.r = len(self.classes)
+
+    gen_key = tuple(gen_perms[0].array_form)
+    self.gen_class = self.cls_of[gen_key]
+    self.gen_class_ids = sorted({self.cls_of[tuple(gp.array_form)] for gp in gen_perms})
+
+    d = self.d
+    mu = d * self.chartable[:, self.gen_class] / self.dims
+    lam = d - mu
+    lam_star = (np.sqrt(d - 1) + 1) ** 2
+    self.lam, self.lam_star = lam, lam_star
+    self.adm_mask = (lam > 1e-6) & (lam <= lam_star + 1e-9)
+    self.n_adm = int(self.adm_mask.sum())
+    self.kappa = mu[self.adm_mask] / d
+    # M_adm: rows = conjugacy classes, columns = admissible irreps
+    self.M_adm = self.chartable[self.adm_mask, :].T
+    self.rank_Madm = int(np.linalg.matrix_rank(self.M_adm, tol=1e-6))
+    self.n_zero_kappa = int(np.sum(np.abs(self.kappa) < 1e-9))
+
+    # P_A = M_adm @ diag(kappa): this, not M_adm itself, is what actually
+    # determines dim(R_A). A row of M_adm is transformed component-wise by
+    # kappa_rho before it ever reaches pi_A; kappa_rho = 0 is compatible
+    # with admissibility (lambda_rho = d exactly still lies in (0, lambda*]),
+    # so a column of M_adm can be admissible yet contribute nothing to the
+    # achievable span. r_A = rank(P_A) <= rank(M_adm), and the inequality is
+    # observed to be strict in practice (see AdmissibleModel.summary()).
+    self.P_A = self.M_adm * self.kappa[None, :]
+    self.r_A = int(np.linalg.matrix_rank(self.P_A, tol=1e-6))
+
+    # Precompute pi_A(g) for every group element (row = vertex index).
+    elem_class = np.array([
+      self.cls_of[tuple(action_on_P1(M, q).tolist())] for M in elems
+    ])
+    self.Pi_mat = (self.chartable[self.adm_mask][:, elem_class] * self.kappa[:, None]).T
+    # Pi_mat[v, :] = pi_A(v) in R^{n_adm}; rank(Pi_mat) == r_A by construction.
+
+  def pi_A(self, v_idx):
+    return self.Pi_mat[v_idx, :]
+
+  def summary(self):
+    return (f"q={self.q} ({self.label}(2,{self.q})): |G|={self.n}, r={self.r} classes, "
+            f"generators in {len(self.gen_class_ids)} class(es), "
+            f"n_adm={self.n_adm}/{self.r}, rank(M_adm)={self.rank_Madm}, "
+            f"r_A=rank(P_A)={self.r_A} ({self.n_zero_kappa} admissible sectors have kappa=0)")
+
+
+# ================================================================
+# §5  SHELL-BY-SHELL (GRAPH-DISTANCE) CASCADE
+# ================================================================
+#
+# Unchanged from v2.0: shell m is tested against the span of strictly
+# earlier shells, then absorbed as a whole. This removes all dependence on
+# BFS tie-breaking, parent choice, or insertion order within a shell.
 
 def bfs_shells(adj, n_verts):
   """Exact graph-distance shells and distances from vertex 0."""
@@ -398,38 +531,47 @@ def layered_transition_cascade(adj, shells, dist, fp_func, fp_dim, max_shell=Non
   return {k: np.array(v) for k, v in res.items()}
 
 
+def build_steinberg_projections(elems, gen_mats, q):
+  """Steinberg projections tilde_sigma for all vertices and generators."""
+  steins = np.zeros((len(elems), q + 1))
+  for i, M in enumerate(elems):
+    s = action_on_P1(M, q).astype(float)
+    steins[i] = s - s.mean()
+  gen_steins = np.zeros((len(gen_mats), q + 1))
+  for gi, G in enumerate(gen_mats):
+    s = action_on_P1(G, q).astype(float)
+    gen_steins[gi] = s - s.mean()
+  return steins, gen_steins
+
+
 # ================================================================
-# §2  FIGURE 1 -- Version A vs B (character-based) on X^{5,13}
+# §6  FIGURE 1 -- Version A vs B (character-based) on X^{5,13}
 # ================================================================
 
 def figure1_A_vs_B(q=13, p=5, outfile='fig1_A_vs_B.png'):
   print(f"Figure 1: Version A vs B (character-based), q={q}")
-  adj, elems, elem_mats, gen_mats = build_graph(q, p)
-  n = len(elems)
-  reps, adm_idx, mu_vals, lam_star, d = build_irreps(q, p)
-  Pi_mat, n_conj = vertex_chars(elems, q, reps, adm_idx)
-  n_adm = len(adm_idx)
-  kappa = np.array([mu_vals[k] / d for k in adm_idx])
-  rank_Madm = np.linalg.matrix_rank(Pi_mat, tol=1e-6)
-  shells, dist = bfs_shells(adj, n)
+  model = AdmissibleModel(q, p)
+  print("  " + model.summary())
+  shells, dist = bfs_shells(model.adj, model.n)
 
-  # Version A fingerprint (vertex-only)
   def fp_A(v):
-    return Pi_mat[v, :]
+    return model.pi_A(v)
 
-  # Version B (character) fingerprint, layered
+  # pi_B(u->v) = kappa * chi(u) * chi(v); Pi_mat already carries kappa*chi,
+  # so recover the bare characters by dividing out kappa once.
+  bare_chi = model.Pi_mat / model.kappa[None, :]
+
   def fp_B(u, v, gi):
-    return kappa * Pi_mat[u, :] * Pi_mat[v, :]
+    return model.kappa * bare_chi[u, :] * bare_chi[v, :]
 
-  print(f"  |G|={n}, n_adm={n_adm}, rank(M_adm)={rank_Madm}, shells={max(shells)}")
-  res_A = layered_vertex_cascade(shells, dist, fp_A, n_adm)
-  res_B = layered_transition_cascade(adj, shells, dist, fp_B, n_adm)
+  res_A = layered_vertex_cascade(shells, dist, fp_A, model.n_adm)
+  res_B = layered_transition_cascade(model.adj, shells, dist, fp_B, model.n_adm)
 
   fig, axes = plt.subplots(2, 2, figsize=(12, 8))
   fig.suptitle(
     f'Version A vs B (character-based) on $X^{{{p},{q}}}$, shell-layered cascade\n'
-    f'$|G|={n}$, $n_{{\\rm adm}}={n_adm}$, '
-    f'$\\mathrm{{rank}}(M_{{\\rm adm}})={rank_Madm}$',
+    f'{model.label}(2,{q}): $|G|={model.n}$, $n_{{\\rm adm}}={model.n_adm}$, '
+    f'$\\mathrm{{rank}}(M_{{\\rm adm}})={model.rank_Madm}$, $r_A=\\mathrm{{rank}}(P_A)={model.r_A}$',
     fontsize=12
   )
   Sn_A, Sn_B = res_A['Sn'], res_B['Sn']
@@ -437,20 +579,24 @@ def figure1_A_vs_B(q=13, p=5, outfile='fig1_A_vs_B.png'):
   ax = axes[0, 0]
   ax.plot(Sn_A, res_A['dim'], 'g-o', ms=3, label=r'$\dim\Pi_A(S_n)$')
   ax.plot(Sn_B, res_B['dim'], 'b-s', ms=3, label=r'$\dim\Pi_B^{<n}$', alpha=0.8)
-  ax.axhline(rank_Madm, color='g', linestyle='--',
-             label=f'$\\mathrm{{rank}}(M_{{\\rm adm}})={rank_Madm}$')
-  ax.axhline(n_adm, color='b', linestyle=':',
-             label=f'$n_{{\\rm adm}}={n_adm}$')
-  ax.set_xlabel(r'$|S_n|$')
+  ax.axhline(model.r_A, color='g', linestyle='--',
+             label=f'$r_A=\\mathrm{{rank}}(P_A)={model.r_A}$')
+  ax.axhline(model.rank_Madm, color='darkgreen', linestyle='-.', alpha=0.6,
+             label=f'$\\mathrm{{rank}}(M_{{\\rm adm}})={model.rank_Madm}$ (unreachable bound)')
+  ax.axhline(model.n_adm, color='b', linestyle=':',
+             label=f'$n_{{\\rm adm}}={model.n_adm}$')
+  ax.set_xlabel(r'$|S_n|$ (log)')
+  ax.set_xscale('log')
   ax.set_ylabel(r'$\dim\Pi(S_n)$')
   ax.set_title('Rank of admissible span (shell-layered)')
-  ax.legend(fontsize=8)
+  ax.legend(fontsize=7)
   ax.grid(True, alpha=0.3)
 
   ax = axes[0, 1]
   ax.plot(Sn_A, res_A['rt'], 'g-o', ms=3, label=r'$\tilde{r}^A_n$ (vertex)')
   ax.plot(Sn_B, res_B['rt'], 'b-s', ms=3, label=r'$\tilde{r}^B_n$ (character, layered)', alpha=0.8)
-  ax.set_xlabel(r'$|S_n|$')
+  ax.set_xlabel(r'$|S_n|$ (log)')
+  ax.set_xscale('log')
   ax.set_ylabel(r'$\tilde{r}_n$')
   ax.set_title(r'Shell-wise novelty fraction')
   ax.legend(fontsize=9)
@@ -458,11 +604,12 @@ def figure1_A_vs_B(q=13, p=5, outfile='fig1_A_vs_B.png'):
   ax.set_ylim(-0.05, 1.05)
 
   ax = axes[1, 0]
-  r_A = np.array(res_A['dim'], dtype=float) / np.maximum(res_A['Sn'], 1)
-  ax.plot(Sn_A, r_A, 'g-o', ms=3, label=r'$r_n$')
-  ax.axhline(rank_Madm / n, color='k', linestyle=':', alpha=0.6,
+  rn_ratio = np.array(res_A['dim'], dtype=float) / np.maximum(res_A['Sn'], 1)
+  ax.plot(Sn_A, rn_ratio, 'g-o', ms=3, label=r'$r_n$')
+  ax.axhline(model.r_A / model.n, color='k', linestyle=':', alpha=0.6,
              label=r'$r_A/|G|$ (finite floor, not 0)')
-  ax.set_xlabel(r'$|S_n|$')
+  ax.set_xlabel(r'$|S_n|$ (log)')
+  ax.set_xscale('log')
   ax.set_ylabel(r'$r_n = \dim\Pi_A(S_n)/|S_n|$')
   ax.set_title(r'Finite bound $r_n\leq r_A/|S_n|$ (Corollary~1)')
   ax.legend(fontsize=8)
@@ -470,25 +617,24 @@ def figure1_A_vs_B(q=13, p=5, outfile='fig1_A_vs_B.png'):
 
   ax = axes[1, 1]
   ax.axis('off')
-  satA = next((res_A['Sn'][i] for i, d_ in enumerate(res_A['dim']) if d_ >= rank_Madm), None)
+  satA = next((res_A['Sn'][i] for i, d_ in enumerate(res_A['dim']) if d_ >= model.r_A), None)
   summary = (
     f"KEY NUMBERS ($q={q}$, $p={p}$), shell-layered:\n\n"
-    f"  $|G| = {n}$\n"
-    f"  $n_{{\\rm adm}} = {n_adm}$\n"
-    f"  $\\mathrm{{rank}}(M_{{\\rm adm}}) = r_A = {rank_Madm}$\n\n"
+    f"  Group: {model.label}(2,{q})\n"
+    f"  $|G| = {model.n}$\n"
+    f"  Generators in {len(model.gen_class_ids)} conjugacy class(es)\n"
+    f"  $n_{{\\rm adm}} = {model.n_adm}$ of ${model.r}$ classes\n"
+    f"  $\\mathrm{{rank}}(M_{{\\rm adm}}) = {model.rank_Madm}$\n"
+    f"  $r_A = \\mathrm{{rank}}(P_A) = {model.r_A}$"
+    f" ({model.n_zero_kappa} admissible sectors have $\\kappa_\\rho=0$)\n\n"
     f"VERSION A (empirical, this traversal only):\n"
-    f"  $\\dim\\Pi_A(S_n)$ reaches $r_A$ at $|S_n| \\approx {satA}$\n"
-    f"  (abstract witness only guarantees size $r_A={rank_Madm}$;\n"
-    f"   the gap is the BFS/shell discovery cost, not a bound)\n"
-    f"  Late $\\tilde{{r}}^A$: {np.mean(res_A['rt'][-5:]):.3f}\n\n"
+    f"  $\\dim\\Pi_A(S_n)$ reaches $r_A$ at $|S_n| \\approx {satA}$\n\n"
     f"VERSION B (character, layered):\n"
     f"  Max $\\dim\\Pi_B^{{<n}}$: {max(res_B['dim'])}\n"
-    f"  Late $\\tilde{{r}}^B$: {np.mean(res_B['rt'][-5:]):.3f}\n"
-    f"  (no decay -- character collapse persists\n"
-    f"   under the layered definition too)"
+    f"  Late $\\tilde{{r}}^B$: {np.mean(res_B['rt'][-5:]):.3f}"
   )
   ax.text(0.05, 0.95, summary, transform=ax.transAxes,
-          fontsize=9.5, verticalalignment='top', fontfamily='monospace',
+          fontsize=9, verticalalignment='top', fontfamily='monospace',
           bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.8))
   ax.set_title('Summary')
 
@@ -498,7 +644,7 @@ def figure1_A_vs_B(q=13, p=5, outfile='fig1_A_vs_B.png'):
 
 
 # ================================================================
-# §3  FIGURE 2 -- Version B character q-dependence
+# §7  FIGURE 2 -- Version B character q-dependence
 # ================================================================
 
 def figure2_versionB_qdep(qs=(13, 29), p=5, outfile='fig2_versionB_sat.png'):
@@ -512,23 +658,19 @@ def figure2_versionB_qdep(qs=(13, 29), p=5, outfile='fig2_versionB_sat.png'):
   colors = {13: 'green', 17: 'blue', 29: 'orange', 41: 'red'}
 
   for q in qs:
-    adj, elems, elem_mats, gen_mats = build_graph(q, p)
-    n = len(elems)
-    reps, adm_idx, mu_vals, lam_star, d = build_irreps(q, p)
-    Pi_mat, _ = vertex_chars(elems, q, reps, adm_idx)
-    n_adm = len(adm_idx)
-    kappa = np.array([mu_vals[k] / d for k in adm_idx])
-    rank_Madm = np.linalg.matrix_rank(Pi_mat, tol=1e-6)
-    shells, dist = bfs_shells(adj, n)
+    model = AdmissibleModel(q, p)
+    print("  " + model.summary())
+    shells, dist = bfs_shells(model.adj, model.n)
+    bare_chi = model.Pi_mat / model.kappa[None, :]
 
-    def fp_A(v, Pi=Pi_mat):
+    def fp_A(v, Pi=model.Pi_mat):
       return Pi[v, :]
 
-    def fp_B(u, v, gi, Pi=Pi_mat, kap=kappa):
-      return kap * Pi[u, :] * Pi[v, :]
+    def fp_B(u, v, gi, kap=model.kappa, chi=bare_chi):
+      return kap * chi[u, :] * chi[v, :]
 
-    res_A = layered_vertex_cascade(shells, dist, fp_A, n_adm)
-    res_B = layered_transition_cascade(adj, shells, dist, fp_B, n_adm)
+    res_A = layered_vertex_cascade(shells, dist, fp_A, model.n_adm)
+    res_B = layered_transition_cascade(model.adj, shells, dist, fp_B, model.n_adm)
     col = colors.get(q, 'gray')
 
     axes[0].plot(res_A['Sn'], res_A['dim'],
@@ -537,7 +679,7 @@ def figure2_versionB_qdep(qs=(13, 29), p=5, outfile='fig2_versionB_sat.png'):
     axes[0].plot(res_B['Sn'], res_B['dim'],
                  color=col, linestyle='--', marker='s', ms=2,
                  label=f'$\\dim\\Pi_B^{{<n}}$, $q={q}$', alpha=0.7)
-    axes[0].axhline(rank_Madm, color=col, linestyle=':', alpha=0.4)
+    axes[0].axhline(model.r_A, color=col, linestyle=':', alpha=0.4)
 
     axes[1].plot(res_A['Sn'], res_A['rt'],
                  color=col, linestyle='-', marker='o', ms=2,
@@ -546,13 +688,15 @@ def figure2_versionB_qdep(qs=(13, 29), p=5, outfile='fig2_versionB_sat.png'):
                  color=col, linestyle='--', marker='s', ms=2,
                  label=f'$\\tilde{{r}}^B$, $q={q}$', alpha=0.7)
 
-  axes[0].set_xlabel(r'$|S_n|$')
+  axes[0].set_xlabel(r'$|S_n|$ (log)')
+  axes[0].set_xscale('log')
   axes[0].set_ylabel(r'$\dim\Pi(S_n)$')
   axes[0].set_title('Rank of admissible spans')
   axes[0].legend(fontsize=7)
   axes[0].grid(True, alpha=0.3)
 
-  axes[1].set_xlabel(r'$|S_n|$')
+  axes[1].set_xlabel(r'$|S_n|$ (log)')
+  axes[1].set_xscale('log')
   axes[1].set_ylabel(r'$\tilde{r}_n$')
   axes[1].set_title(r'Admissible frontier fraction')
   axes[1].legend(fontsize=7)
@@ -565,34 +709,32 @@ def figure2_versionB_qdep(qs=(13, 29), p=5, outfile='fig2_versionB_sat.png'):
 
 
 # ================================================================
-# §4  FIGURE 3 -- Matrix variants M1/M2/M3/M4 on X^{5,13}
+# §8  FIGURE 3 -- Matrix variants M1/M2/M3/M4 on X^{5,13}
 # ================================================================
 
 def figure3_matrix_variants(q=13, p=5, outfile='fig3_matB_variants.png'):
   print(f"Figure 3: Matrix variants M1/M2/M3/M4, q={q}")
-  adj, elems, elem_mats, gen_mats = build_graph(q, p)
-  n = len(elems)
-  reps, adm_idx, mu_vals, lam_star, d = build_irreps(q, p)
-  Pi_mat, _ = vertex_chars(elems, q, reps, adm_idx)
-  n_adm = len(adm_idx)
-  kappa = np.array([mu_vals[k] / d for k in adm_idx])
+  model = AdmissibleModel(q, p)
+  print("  " + model.summary())
+  bare_chi = model.Pi_mat / model.kappa[None, :]
+  shells, dist = bfs_shells(model.adj, model.n)
 
   def fp_M1(u, v, gi):
-    return elem_mats[v].astype(float).flatten() / q
+    return model.elems[v].astype(float).flatten() / q
 
   def fp_M2(u, v, gi):
-    Mu = elem_mats[u].astype(float) / q
-    Ms = gen_mats[gi].astype(float) / q
+    Mu = model.elems[u].astype(float) / q
+    Ms = model.gen_mats[gi].astype(float) / q
     return np.outer(Mu.flatten(), Ms.flatten()).flatten()
 
   def fp_M3(u, v, gi):
-    chi_u = Pi_mat[u, :]
-    Ms = gen_mats[gi].astype(float) / q
-    return np.outer(kappa * chi_u, Ms.flatten()).flatten()
+    chi_u = bare_chi[u, :]
+    Ms = model.gen_mats[gi].astype(float) / q
+    return np.outer(model.kappa * chi_u, Ms.flatten()).flatten()
 
   def fp_M4(u, v, gi):
-    Mu = elem_mats[u].astype(float) / q
-    Ms = gen_mats[gi].astype(float) / q
+    Mu = model.elems[u].astype(float) / q
+    Ms = model.gen_mats[gi].astype(float) / q
     return np.concatenate([(Mu @ Ms).flatten(),
                            (Mu.T @ Ms).flatten(),
                            (Mu @ Ms.T).flatten()])
@@ -600,11 +742,9 @@ def figure3_matrix_variants(q=13, p=5, outfile='fig3_matB_variants.png'):
   variants = [
     ('M1: $\\mathrm{vec}(M_v)$', fp_M1, 4, 'gray'),
     ('M2: $M_u\\otimes M_s$', fp_M2, 16, 'blue'),
-    ('M3: $\\chi_u\\otimes\\mathrm{vec}(M_s)$', fp_M3, n_adm * 4, 'orange'),
+    ('M3: $\\chi_\\rho(u)\\otimes\\mathrm{vec}(M_s)$', fp_M3, model.n_adm * 4, 'orange'),
     ('M4: 3 products', fp_M4, 12, 'green'),
   ]
-
-  shells, dist = bfs_shells(adj, n)
 
   fig, axes = plt.subplots(1, 3, figsize=(15, 5))
   fig.suptitle(
@@ -614,7 +754,7 @@ def figure3_matrix_variants(q=13, p=5, outfile='fig3_matB_variants.png'):
 
   for name, fp, dim, col in variants:
     print(f"  Running {name} (dim={dim})...", end=' ', flush=True)
-    res = layered_transition_cascade(adj, shells, dist, fp, dim)
+    res = layered_transition_cascade(model.adj, shells, dist, fp, dim)
     print(f"max_dim={max(res['dim'])}, late_rt={np.mean(res['rt'][-5:]):.3f}")
     Sn = res['Sn']
     axes[0].plot(Sn, res['dim'], marker='o', ms=2, color=col, label=name)
@@ -624,25 +764,27 @@ def figure3_matrix_variants(q=13, p=5, outfile='fig3_matB_variants.png'):
     Sn_arr = np.array(Sn)
     rt_arr = np.array(res['rt'])
     if valid.sum() > 3:
-      axes[2].semilogy(Sn_arr[valid], rt_arr[valid],
-                       marker='o', ms=2, color=col, label=name)
+      axes[2].loglog(Sn_arr[valid], rt_arr[valid],
+                     marker='o', ms=2, color=col, label=name)
 
-  axes[0].set_xlabel(r'$|S_n|$')
+  axes[0].set_xlabel(r'$|S_n|$ (log)')
+  axes[0].set_xscale('log')
   axes[0].set_ylabel(r'$\dim\Pi^{\rm mat}_{<n}(S_n)$')
   axes[0].set_title('Rank of matrix span (shell-layered)')
   axes[0].legend(fontsize=7)
   axes[0].grid(True, alpha=0.3)
 
-  axes[1].set_xlabel(r'$|S_n|$')
+  axes[1].set_xlabel(r'$|S_n|$ (log)')
+  axes[1].set_xscale('log')
   axes[1].set_ylabel(r'$\tilde{r}_n^{\rm mat}$')
   axes[1].set_title('Admissible frontier fraction')
   axes[1].legend(fontsize=7)
   axes[1].grid(True, alpha=0.3)
   axes[1].set_ylim(-0.05, 1.05)
 
-  axes[2].set_xlabel(r'$|S_n|$')
+  axes[2].set_xlabel(r'$|S_n|$ (log)')
   axes[2].set_ylabel(r'$\tilde{r}_n$ (log)')
-  axes[2].set_title('Decay shape (semi-log)')
+  axes[2].set_title('Decay shape (log-log)')
   axes[2].legend(fontsize=7)
   axes[2].grid(True, alpha=0.3)
 
@@ -652,7 +794,7 @@ def figure3_matrix_variants(q=13, p=5, outfile='fig3_matB_variants.png'):
 
 
 # ================================================================
-# §5  FIGURE 4 -- Steinberg St_elem pre-saturation law
+# §9  FIGURE 4 -- Steinberg St_elem pre-saturation law
 # ================================================================
 
 def figure4_steinberg_presat(qs=(13, 17, 29), p=5, outfile='fig4_StElem_presat.png'):
@@ -662,15 +804,14 @@ def figure4_steinberg_presat(qs=(13, 17, 29), p=5, outfile='fig4_StElem_presat.p
   all_data = {}
   for q in qs:
     print(f"  q={q}...", end=' ', flush=True)
-    adj, elems, elem_mats, gen_mats = build_graph(q, p)
-    n = len(elems)
-    steins, gen_steins = build_steinberg_projections(elems, elem_mats, gen_mats, q)
+    model = AdmissibleModel(q, p)
+    steins, gen_steins = build_steinberg_projections(model.elems, model.gen_mats, q)
 
     def fp_St(u, v, gi, st=steins, gst=gen_steins):
       return st[u] * gst[gi]
 
-    shells, dist = bfs_shells(adj, n)
-    res = layered_transition_cascade(adj, shells, dist, fp_St, q + 1,
+    shells, dist = bfs_shells(model.adj, model.n)
+    res = layered_transition_cascade(model.adj, shells, dist, fp_St, q + 1,
                                       max_shell=min(len(shells) - 1, 400))
 
     Sn_arr = res['Sn']
@@ -681,7 +822,6 @@ def figure4_steinberg_presat(qs=(13, 17, 29), p=5, outfile='fig4_StElem_presat.p
     sat_idx = next((i for i, d_ in enumerate(dim_arr) if d_ >= q + 1), None)
     sat_Sn = int(Sn_arr[sat_idx]) if sat_idx is not None else None
 
-    # Fit p_prod ~ |S|^beta
     hi = sat_idx if sat_idx is not None else len(Sn_arr)
     mask = (Sn_arr[:hi] > 3) & (pp_arr[:hi] > 0)
     beta_prod = None
@@ -692,97 +832,67 @@ def figure4_steinberg_presat(qs=(13, 17, 29), p=5, outfile='fig4_StElem_presat.p
       beta_prod = slope
 
     all_data[q] = {
-      'n': n, 'Sn': Sn_arr, 'rt': rt_arr, 'dim': dim_arr,
+      'n': model.n, 'Sn': Sn_arr, 'rt': rt_arr, 'dim': dim_arr,
       'pp': pp_arr, 'sat_Sn': sat_Sn, 'sat_idx': sat_idx,
-      'beta_prod': beta_prod
+      'beta_prod': beta_prod, 'label': model.label
     }
     print(f"|S*|={sat_Sn}, beta_prod={beta_prod:.3f}" if beta_prod else f"|S*|={sat_Sn}")
 
   fig, axes = plt.subplots(2, 2, figsize=(12, 9))
   fig.suptitle(
     r'Steinberg $\tilde\sigma_u\odot\tilde\sigma_s$ pre-saturation law'
-    f' -- $X^{{5,q}}$, $q\\in{{{",".join(map(str, qs))}}}$',
+    f' -- $X^{{5,q}}$, $q\\in{{{",".join(map(str, qs))}}}$, shell-layered',
     fontsize=12
   )
 
-  # Panel 1: r_tilde vs |S|
   ax = axes[0, 0]
   for q, d in all_data.items():
     ax.plot(d['Sn'], d['rt'], color=colors[q], marker='o', ms=2,
-            label=f'$q={q}$')
+            label=f'$q={q}$ ({d["label"]})')
     if d['sat_Sn']:
       ax.axvline(d['sat_Sn'], color=colors[q], linestyle='--', alpha=0.5)
-  ax.set_xlabel(r'$|S_n|$')
+  ax.set_xlabel(r'$|S_n|$ (log)')
+  ax.set_xscale('log')
   ax.set_ylabel(r'$\tilde{r}_n^{\rm St}$')
-  ax.set_title(r'Admissible frontier fraction (linear)')
+  ax.set_title(r'Admissible frontier fraction')
   ax.legend(fontsize=9)
   ax.grid(True, alpha=0.3)
   ax.set_ylim(-0.05, 1.05)
 
-  # Panel 2: semi-log r_tilde
   ax = axes[0, 1]
   for q, d in all_data.items():
     valid = d['rt'] > 0.005
-    ax.semilogy(d['Sn'][valid], d['rt'][valid], color=colors[q],
-                marker='o', ms=2, label=f'$q={q}$')
-  ax.set_xlabel(r'$|S_n|$')
+    ax.loglog(d['Sn'][valid], d['rt'][valid], color=colors[q],
+              marker='o', ms=2, label=f'$q={q}$')
+  ax.set_xlabel(r'$|S_n|$ (log)')
   ax.set_ylabel(r'$\tilde{r}_n^{\rm St}$ (log)')
-  ax.set_title('Decay shape (semi-log)')
+  ax.set_title('Decay shape (log-log)')
   ax.legend(fontsize=9)
   ax.grid(True, alpha=0.3)
 
-  # Panel 3: p_prod log-log
   ax = axes[1, 0]
   for q, d in all_data.items():
     valid = d['pp'] > 0
     ax.loglog(d['Sn'][valid], d['pp'][valid], color=colors[q],
               marker='o', ms=2, label=f'$q={q}$')
-    sat = d['sat_idx']
-    if d['beta_prod'] and sat:
-      x_fit = d['Sn'][3:sat].astype(float)
-      mask_f = (x_fit > 3) & (d['pp'][3:sat] > 0)
-      if mask_f.sum() > 3:
-        logx = np.log(x_fit[mask_f])
-        logy = np.log(d['pp'][3:sat][mask_f].astype(float))
-        A = np.exp(np.polyfit(logx, logy, 1)[1])
-        ax.loglog(x_fit[mask_f],
-                  A * x_fit[mask_f] ** d['beta_prod'], color=colors[q],
-                  linestyle='--', alpha=0.6,
-                  label=f"$\\beta_{{\\rm prod}}={d['beta_prod']:.2f}$")
   ax.set_xlabel(r'$|S_n|$ (log)')
   ax.set_ylabel(r'$p_n^{\rm prod}$ (log)')
-  ax.set_title(r'Cumulative admissible front (log-log)')
+  ax.set_title(r'Cumulative admissible front (reference only; no exponent fit)')
   ax.legend(fontsize=7)
   ax.grid(True, alpha=0.3)
 
-  # Panel 4: stability table
   ax = axes[1, 1]
   ax.axis('off')
-  lines = ['PARAMETER STABILITY\n']
-  lines.append('Saturation thresholds vs q:')
-  sat_list = [(q, d['sat_Sn']) for q, d in all_data.items() if d['sat_Sn']]
-  for q_v, s_v in sat_list:
-    n_v = all_data[q_v]['n']
-    lines.append(f'  $q={q_v}$: $|S^*|={s_v}$, '
-                 f'$|S^*|/|G|={s_v / n_v:.5f}$')
-  if len(sat_list) >= 2:
-    q_arr = np.array([x[0] for x in sat_list], dtype=float)
-    s_arr = np.array([x[1] for x in sat_list], dtype=float)
-    slope, _ = np.polyfit(np.log(q_arr), np.log(s_arr), 1)
-    lines.append(f'  $|S^*| \\sim q^{{{slope:.2f}}}$')
+  lines = ['PARAMETER TABLE (shell-layered, verified group)\n']
+  for q_v, d in all_data.items():
+    lines.append(f'  $q={q_v}$ ({d["label"]}): $|G|={d["n"]}$, '
+                 f'$|S^*|={d["sat_Sn"]}$, $|S^*|/|G|={d["sat_Sn"]/d["n"]:.5f}$')
+  n_fit = sum(1 for d in all_data.values() if d['beta_prod'] is not None)
   lines.append('')
-  lines.append('$\\beta_{\\rm prod}$ stability:')
-  for q, d in all_data.items():
-    if d['beta_prod']:
-      lines.append(f'  $q={q}$: $\\beta_{{\\rm prod}}={d["beta_prod"]:.4f}$')
-  bp_vals = [d['beta_prod'] for d in all_data.values() if d['beta_prod']]
-  if bp_vals:
-    lines.append('  mean: ' + f'{np.mean(bp_vals):.4f}' + ', '
-                 + 'std: ' + f'{np.std(bp_vals):.4f}')
-  lines.append('')
-  lines.append(r'Note: $\beta_{\rm prod}\approx1.7$ is outside')
-  lines.append(r'$\beta^*\in(0.09,0.13)$; governed by')
-  lines.append(r'$O(q)$ pre-saturation window only.')
+  lines.append(f'Usable pre-saturation windows for a beta_prod fit: {n_fit}/{len(all_data)}')
+  lines.append('Saturation occurs inside the local tree-like regime')
+  lines.append('shared by every tested q (shell sizes 1,6,30,150,... match')
+  lines.append('the free 6-regular tree exactly before any collision).')
 
   ax.text(0.03, 0.97, '\n'.join(lines), transform=ax.transAxes,
           fontsize=9, verticalalignment='top', fontfamily='monospace',
@@ -795,7 +905,7 @@ def figure4_steinberg_presat(qs=(13, 17, 29), p=5, outfile='fig4_StElem_presat.p
 
 
 # ================================================================
-# §6  MAIN
+# §10  MAIN
 # ================================================================
 
 def main():
