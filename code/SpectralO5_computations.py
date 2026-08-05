@@ -46,9 +46,6 @@ import matplotlib.pyplot as plt
 from collections import deque
 from itertools import permutations, product as iproduct
 from sympy.combinatorics import Permutation, PermutationGroup
-import warnings
-
-warnings.filterwarnings('ignore')
 
 
 # ================================================================
@@ -246,6 +243,26 @@ def verify_symmetry(adj):
   return bad
 
 
+def distinct_count(values, decimals=6):
+  """Number of distinct values after rounding (avoids floating-point noise
+  splitting a single true value into several)."""
+  return len(set(np.round(np.asarray(values, dtype=float), decimals).tolist()))
+
+
+def graph_adjacency_distinct_eigenvalues(adj, n, decimals=6):
+  """Dense diagonalisation of the graph's own adjacency matrix. Only
+  tractable for the smaller tested graphs (q=13: n=2184). Returns the
+  number of distinct eigenvalues, used to make concrete the gap between
+  the true spectrum and the sector-trace averages mu_bar_rho (see
+  CharacterTraceModel and the module comment above SS4)."""
+  A = np.zeros((n, n))
+  for u, lst in adj.items():
+    for (v, gi) in lst:
+      A[u, v] = 1.0
+  evals = np.linalg.eigvalsh(A)
+  return distinct_count(evals, decimals)
+
+
 # ================================================================
 # §3  CHARACTER TABLE VIA DIXON'S ALGORITHM
 # ================================================================
@@ -420,22 +437,22 @@ class CharacterTraceModel:
     lam = d - mu
     lam_star = (np.sqrt(d - 1) + 1) ** 2
     self.lam, self.lam_star = lam, lam_star
-    self.adm_mask = (lam > 1e-6) & (lam <= lam_star + 1e-9)
-    self.n_adm = int(self.adm_mask.sum())
-    self.kappa = mu[self.adm_mask] / d
-    # M_adm: rows = conjugacy classes, columns = trace-selected irreps
-    self.M_adm = self.chartable[self.adm_mask, :].T
-    self.rank_Madm = int(np.linalg.matrix_rank(self.M_adm, tol=1e-6))
+    self.tr_mask = (lam > 1e-6) & (lam <= lam_star + 1e-9)
+    self.n_tr = int(self.tr_mask.sum())
+    self.kappa = mu[self.tr_mask] / d
+    # M_tr: rows = conjugacy classes, columns = trace-selected irreps
+    self.M_tr = self.chartable[self.tr_mask, :].T
+    self.rank_Mtr = int(np.linalg.matrix_rank(self.M_tr, tol=1e-6))
     self.n_zero_kappa = int(np.sum(np.abs(self.kappa) < 1e-9))
 
-    # P_A = M_adm @ diag(kappa): this, not M_adm itself, is what actually
-    # determines dim(R_A). A row of M_adm is transformed component-wise by
+    # P_A = M_tr @ diag(kappa): this, not M_tr itself, is what actually
+    # determines dim(R_A). A row of M_tr is transformed component-wise by
     # kappa_rho before it ever reaches pi_A; kappa_rho = 0 is compatible with
     # trace-selection (lambda_rho = d exactly still lies in (0, lambda*]),
-    # so a column of M_adm can be trace-selected yet contribute nothing to
-    # the achievable span. r_A = rank(P_A) <= rank(M_adm), and the inequality is
+    # so a column of M_tr can be trace-selected yet contribute nothing to
+    # the achievable span. r_A = rank(P_A) <= rank(M_tr), and the inequality is
     # observed to be strict in practice (see CharacterTraceModel.summary()).
-    self.P_A = self.M_adm * self.kappa[None, :]
+    self.P_A = self.M_tr * self.kappa[None, :]
     self.r_A = int(np.linalg.matrix_rank(self.P_A, tol=1e-6))
 
     # Precompute chi_rho(g) and pi_A(g) for every group element (row = vertex
@@ -447,10 +464,10 @@ class CharacterTraceModel:
     elem_class = np.array([
       self.cls_of[tuple(action_on_P1(M, q).tolist())] for M in elems
     ])
-    self.Chi_mat = self.chartable[self.adm_mask][:, elem_class].T
+    self.Chi_mat = self.chartable[self.tr_mask][:, elem_class].T
     # Chi_mat[v, :] = (chi_rho(v))_{rho in Gtr}
     self.Pi_mat = self.Chi_mat * self.kappa[None, :]
-    # Pi_mat[v, :] = pi_A(v) in R^{n_adm}; rank(Pi_mat) == r_A by construction.
+    # Pi_mat[v, :] = pi_A(v) in R^{n_tr}; rank(Pi_mat) == r_A by construction.
 
   def pi_A(self, v_idx):
     return self.Pi_mat[v_idx, :]
@@ -458,7 +475,7 @@ class CharacterTraceModel:
   def summary(self):
     return (f"q={self.q} ({self.label}(2,{self.q})): |G|={self.n}, r={self.r} classes, "
             f"generators in {len(self.gen_class_ids)} class(es), "
-            f"n_adm={self.n_adm}/{self.r}, rank(M_adm)={self.rank_Madm}, "
+            f"n_tr={self.n_tr}/{self.r}, rank(M_tr)={self.rank_Mtr}, "
             f"r_A=rank(P_A)={self.r_A} ({self.n_zero_kappa} trace-selected sectors have kappa=0)")
 
 
@@ -594,26 +611,40 @@ def figure1_A_vs_B(q=13, p=5, outfile='fig1_A_vs_B.png'):
   print(f"Figure 1: Version A vs B (character-based), q={q}")
   model = CharacterTraceModel(q, p)
   print("  " + model.summary())
+
+  if q == 13:
+    # Live check of the trace-average/eigenvalue gap claimed throughout
+    # the paper (Remark rem:trace-not-eigenvalue): computed here, not just
+    # asserted in prose.
+    n_eig = graph_adjacency_distinct_eigenvalues(model.adj, model.n)
+    lam_all = model.d - model.d * model.chartable[:, model.gen_class] / model.dims
+    n_trace = distinct_count(lam_all)
+    print(f"  eigenvalue-gap check: {n_eig} distinct graph eigenvalues vs "
+          f"{n_trace} distinct trace averages across {model.r} sectors")
+    assert n_eig == 55 and n_trace == 9, (
+      f"expected 55 distinct eigenvalues / 9 distinct trace averages for q=13, "
+      f"got {n_eig} / {n_trace}")
+
   shells, dist = bfs_shells(model.adj, model.n)
 
   def fp_A(v):
     return model.pi_A(v)
 
-  # pi_B(u->v) = kappa * chi(u) * chi(v); Pi_mat already carries kappa*chi,
-  # so recover the bare characters by dividing out kappa once.
+  # pi_B(u->v) = kappa * chi(u) * chi(v); Chi_mat already holds the bare
+  # (un-scaled) characters chi_rho(v) directly from the table.
   bare_chi = model.Chi_mat
 
   def fp_B(u, v, gi):
     return model.kappa * bare_chi[u, :] * bare_chi[v, :]
 
-  res_A = layered_vertex_cascade(shells, dist, fp_A, model.n_adm)
-  res_B = layered_transition_cascade(model.adj, shells, dist, fp_B, model.n_adm)
+  res_A = layered_vertex_cascade(shells, dist, fp_A, model.n_tr)
+  res_B = layered_transition_cascade(model.adj, shells, dist, fp_B, model.n_tr)
 
   fig, axes = plt.subplots(2, 2, figsize=(12, 8))
   fig.suptitle(
     f'Version A vs B (character-based) on $X^{{{p},{q}}}$, shell-layered cascade\n'
-    f'{model.label}(2,{q}): $|G|={model.n}$, $n_{{\\rm adm}}={model.n_adm}$, '
-    f'$\\mathrm{{rank}}(M_{{\\rm adm}})={model.rank_Madm}$, $r_A=\\mathrm{{rank}}(P_A)={model.r_A}$',
+    f'{model.label}(2,{q}): $|G|={model.n}$, $n_{{\\rm tr}}={model.n_tr}$, '
+    f'$\\mathrm{{rank}}(M_{{\\rm tr}})={model.rank_Mtr}$, $r_A=\\mathrm{{rank}}(P_A)={model.r_A}$',
     fontsize=12
   )
   Sn_A, Sn_B = res_A['Sn'], res_B['Sn']
@@ -623,10 +654,10 @@ def figure1_A_vs_B(q=13, p=5, outfile='fig1_A_vs_B.png'):
   ax.plot(Sn_B, res_B['dim'], 'b-s', ms=3, label=r'$\dim\Pi_B^{<n}$', alpha=0.8)
   ax.axhline(model.r_A, color='g', linestyle='--',
              label=f'$r_A=\\mathrm{{rank}}(P_A)={model.r_A}$')
-  ax.axhline(model.rank_Madm, color='darkgreen', linestyle='-.', alpha=0.6,
-             label=f'$\\mathrm{{rank}}(M_{{\\rm adm}})={model.rank_Madm}$ (unreachable bound)')
-  ax.axhline(model.n_adm, color='b', linestyle=':',
-             label=f'$n_{{\\rm adm}}={model.n_adm}$')
+  ax.axhline(model.rank_Mtr, color='darkgreen', linestyle='-.', alpha=0.6,
+             label=f'$\\mathrm{{rank}}(M_{{\\rm tr}})={model.rank_Mtr}$ (unreachable bound)')
+  ax.axhline(model.n_tr, color='b', linestyle=':',
+             label=f'$n_{{\\rm tr}}={model.n_tr}$')
   ax.set_xlabel(r'$|S_n|$ (log)')
   ax.set_xscale('log')
   ax.set_ylabel(r'$\dim\Pi(S_n)$')
@@ -665,8 +696,8 @@ def figure1_A_vs_B(q=13, p=5, outfile='fig1_A_vs_B.png'):
     f"  Group: {model.label}(2,{q})\n"
     f"  $|G| = {model.n}$\n"
     f"  Generators in {len(model.gen_class_ids)} conjugacy class(es)\n"
-    f"  $n_{{\\rm adm}} = {model.n_adm}$ of ${model.r}$ classes\n"
-    f"  $\\mathrm{{rank}}(M_{{\\rm adm}}) = {model.rank_Madm}$\n"
+    f"  $n_{{\\rm tr}} = {model.n_tr}$ of ${model.r}$ classes\n"
+    f"  $\\mathrm{{rank}}(M_{{\\rm tr}}) = {model.rank_Mtr}$\n"
     f"  $r_A = \\mathrm{{rank}}(P_A) = {model.r_A}$"
     f" ({model.n_zero_kappa} trace-selected sectors have $\\kappa_\\rho=0$)\n\n"
     f"VERSION A (empirical, this traversal only):\n"
@@ -711,8 +742,8 @@ def figure2_versionB_qdep(qs=(13, 29), p=5, outfile='fig2_versionB_sat.png'):
     def fp_B(u, v, gi, kap=model.kappa, chi=bare_chi):
       return kap * chi[u, :] * chi[v, :]
 
-    res_A = layered_vertex_cascade(shells, dist, fp_A, model.n_adm)
-    res_B = layered_transition_cascade(model.adj, shells, dist, fp_B, model.n_adm)
+    res_A = layered_vertex_cascade(shells, dist, fp_A, model.n_tr)
+    res_B = layered_transition_cascade(model.adj, shells, dist, fp_B, model.n_tr)
     col = colors.get(q, 'gray')
 
     axes[0].plot(res_A['Sn'], res_A['dim'],
@@ -784,7 +815,7 @@ def figure3_matrix_variants(q=13, p=5, outfile='fig3_matB_variants.png'):
   variants = [
     ('M1: $\\mathrm{vec}(M_v)$', fp_M1, 4, 'gray'),
     ('M2: $M_u\\otimes M_s$', fp_M2, 16, 'blue'),
-    ('M3: $\\chi_\\rho(u)\\otimes\\mathrm{vec}(M_s)$', fp_M3, model.n_adm * 4, 'orange'),
+    ('M3: $\\chi_\\rho(u)\\otimes\\mathrm{vec}(M_s)$', fp_M3, model.n_tr * 4, 'orange'),
     ('M4: 3 products', fp_M4, 12, 'green'),
   ]
 

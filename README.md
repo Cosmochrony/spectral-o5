@@ -1,5 +1,5 @@
 This repository contains the source of the **O5** Cosmochrony paper
-*Finite Character-Trace Saturation and the Limits of Vertex-Based Cascade Dynamics*.
+*Finite Character-Trace Saturation and the Limits of Vertex-Based Class-Function Cascades*.
 
 This work extends the **spectral relaxation programme** by auditing candidate mechanisms for the
 cascade exponent $\beta$ governing the growth law
@@ -31,7 +31,8 @@ For a sector $\rho$, write $A_\rho = \sum_{s \in \mathcal{S}_p} \rho(s)$ and $\b
 conjugacy class (size $182$, $306$, or $870$ for $q=13,17,29$), $A_\rho$ is generally **not**
 central, and $\bar\mu_\rho$ is a trace average, not a genuine eigenvalue of $A_\rho$: for $q=13$,
 direct diagonalisation of the graph's own adjacency matrix gives **55 distinct eigenvalues**
-against the **15 sector-trace values** computed from the character table. Every sector weight,
+against only **9 distinct trace averages** across the **15 sectors** computed from the character
+table. Every sector weight,
 selection window, and fingerprint in this paper is therefore named and used as a *character-trace*
 object, never identified with a Laplacian eigenvalue, a spectral envelope, or a Ramanujan-admissible
 mode.
@@ -157,7 +158,7 @@ comment, the trace-average/eigenvalue distinction above.
 
 If you reference this work, please cite:
 
-J. Beau, Finite Character-Trace Saturation and the Limits of Vertex-Based Cascade Dynamics,
+J. Beau, Finite Character-Trace Saturation and the Limits of Vertex-Based Class-Function Cascades,
 Zenodo, 2026.
 
 # Acknowledgements

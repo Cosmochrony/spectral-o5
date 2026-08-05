@@ -8,7 +8,7 @@
 \usepackage{mathtools}
 \usepackage[dvipsnames]{xcolor}
 \usepackage[colorlinks=true,linkcolor=NavyBlue,citecolor=ForestGreen,urlcolor=NavyBlue,
-  pdftitle={Finite Character-Trace Saturation and the Limits of Vertex-Based Cascade Dynamics},
+  pdftitle={Finite Character-Trace Saturation and the Limits of Vertex-Based Class-Function Cascades},
   pdfauthor={J\'er\^ome Beau},
   pdfsubject={Character theory; class-function saturation; PSL(2,Fq)/PGL(2,Fq); Cosmochrony O-series},
   pdfkeywords={character-trace saturation; class function; cascade exponent; PSL(2,Fq); PGL(2,Fq); LPS Ramanujan graphs}
@@ -73,7 +73,7 @@
 
   \title{%
     Finite Character-Trace Saturation and the Limits of\\
-    Vertex-Based Cascade Dynamics%
+    Vertex-Based Class-Function Cascades%
   }
 
   \author{%
@@ -103,7 +103,8 @@
     $\mubar=\tr(A_\rho)/\dim\rho$.
     Because the six generators are only a small part of their conjugacy class, $A_\rho$ is
     generally not central and $\mubar$ is a trace average, not an eigenvalue: for $q=13$ the true
-    graph spectrum has $55$ distinct eigenvalues against $15$ sector-trace values.
+    graph spectrum has $55$ distinct eigenvalues against only $9$ distinct trace averages across
+    the $15$ sectors.
     Accordingly, every sector weight, selection window, and fingerprint below is named and used as a
     \emph{character-trace} object, never identified with a Laplacian eigenvalue, a spectral envelope,
     or a Ramanujan-admissible mode.
@@ -207,8 +208,8 @@
       generating set is a single conjugacy class but only six elements out of a class of size $O(q)$,
       so $A_\rho$ is generally not central, and $\mubar$ need not equal, or even approximate, any
       actual eigenvalue of $A_\rho$.
-      For $X^{5,13}$, the true graph adjacency spectrum has $55$ distinct eigenvalues against the
-      $15$ sector-trace values computed here (Section~\ref{sec:group-construction}).
+      For $X^{5,13}$, the true graph adjacency spectrum has $55$ distinct eigenvalues against only
+      $9$ distinct trace averages across the $15$ sectors (Section~\ref{sec:group-construction}).
       Every occurrence of ``trace-selected'', $\Gadm$, $\Madm$, and $\kap$ below refers to this
       character-trace object, never to a proven Laplacian eigenvalue or Ramanujan-admissible mode.
 
@@ -372,8 +373,8 @@
         $\mubar$ is only the trace average of its (up to $\dim\rho$) genuine eigenvalues, not a
         distinguished eigenvalue of $A_\rho$ itself.
         This is not a hypothetical concern: for $X^{5,13}$, direct diagonalisation of the graph's own
-        adjacency matrix gives $55$ distinct eigenvalues, against the $15$ sector-trace values
-        $\mubar$ computed from the character table.
+        adjacency matrix gives $55$ distinct eigenvalues, against only $9$ distinct trace averages
+        $\mubar$ across the $15$ sectors computed from the character table.
         Consequently no claim in this paper identifies $\mubar$, $\kap := \mubar/d$, or any quantity
         built from them with a Laplacian eigenvalue, a spectral envelope, or a Ramanujan-admissible
         mode in the sense of~\cite{Beau2026a1}.
@@ -499,9 +500,18 @@
           \qquad
           r_A = \rank(\Madm D_\kappa) \le \rank(\Madm) \le |\Cl(G)|.
         \end{equation}
-        The middle inequality can be strict: a diagonal scaling can only preserve or reduce rank, and
-        does so strictly whenever some selected $\kap = 0$.
-        For the specific character-trace weights of this paper, that means $\mubar = 0$, i.e.\
+        The middle inequality can be strict, and is strict here for a reason specific to $\Madm$, not
+        to diagonal scaling in general: for an arbitrary matrix, zeroing a column need not change the
+        rank at all, if that column was already linearly dependent on the others.
+        Distinct irreducible characters are pairwise orthogonal under the class-size-weighted inner
+        product $\langle \chi_\rho, \chi_{\rho'}\rangle = \sum_{[g]} |[g]|\,\chi_\rho(g)\chi_{\rho'}(g)$,
+        hence linearly independent; the columns of $\Madm$ are exactly the characters of the distinct
+        sectors $\rho \in \Gadm$, so this orthogonality (verified numerically for every tested $q$
+        alongside Burnside's identity in Section~\ref{sec:group-construction}) gives $\Madm$ full
+        column rank, $\rank(\Madm) = |\Gadm|$ exactly.
+        Consequently $D_\kappa$ zeroing any one column strictly removes an independent direction,
+        reducing the rank by exactly the number of zero-$\kap$ columns.
+        For the specific character-trace weights of this paper, $\kap = 0$ means $\mubar = 0$, i.e.\
         $d-\mubar = d$ exactly, a value comfortably inside the trace-selection window $(0,\lambda^*]$
         of~\eqref{eq:admissibility-envelope}, and observed to occur for several trace-selected
         sectors simultaneously; see Remark~\ref{rem:numerical-A}.
@@ -736,8 +746,12 @@ $|S^*_{\mathrm{St}}| \sim q^\gamma$.
 $q$: fewer than five usable points remain before saturation in every case, below what any reasonable
 fit requires.
         \end{itemize}
-        The Steinberg fingerprint therefore achieves genuine $q$-structural growth of its own
-        saturation scale, but the resulting window is the opposite of what a quantitative extraction
+        Only the ambient dimension $q+1$ of the Steinberg fingerprint is structurally guaranteed to
+        grow with $q$; the growth of its saturation scale $|S^*_{\mathrm{St}}|$ across the three
+        tested $q$ is an observation, not an established $q$-law, both because three coarse points
+        cannot support a power-law fit and because the construction itself is relabelling-dependent
+        (see the caveat above).
+        Whatever its status, the resulting window is the opposite of what a quantitative extraction
         of $\betaeff$ would need: it closes almost immediately rather than opening one.
         See Figures~\ref{fig:O5-matB-variants} and~\ref{fig:O5-StElem-presat}.
       \end{remark}
