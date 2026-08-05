@@ -3,7 +3,7 @@
 SpectralO5 -- Numerical Computations
 ======================================
 All scripts supporting the paper
-  "Admissible Frontier Saturation and the Cascade Exponent"
+  "Finite Character-Trace Saturation and the Limits of Vertex-Based Cascade Dynamics"
   J. Beau, Cosmochrony O-Series, 2026
 
 Sections:
@@ -12,7 +12,10 @@ Sections:
       permutation representation (scalar-invariant canonicalization)
   §3  Character table via Dixon's algorithm, verified via Burnside's
       identity and commutativity of the class-sum matrices
-  §4  Admissibility layer (M_adm, kappa_rho, per-vertex character lookup)
+  §4  Character-trace layer (M_tr, kappa_bar_rho: a TRACE AVERAGE
+      tr(A_rho)/dim(rho), not an eigenvalue of A_rho = sum_s rho(s) --
+      the generating set is only 6 elements of a much larger conjugacy
+      class, so A_rho is not central in general; see CharacterTraceModel)
   §5  Shell-by-shell (graph-distance) cascade
   §6  Figure 1: Version A vs B (character-based) on X^{5,13}
   §7  Figure 2: Version B character, q-dependence on X^{5,q}
@@ -351,12 +354,27 @@ def dixon_character_table(perm_group):
 
 
 # ================================================================
-# §4  ADMISSIBILITY LAYER
+# §4  CHARACTER-TRACE LAYER
 # ================================================================
+#
+# mu_bar_rho = tr(A_rho)/dim(rho), A_rho = sum_{s in generators} rho(s), is a
+# TRACE AVERAGE, not an eigenvalue of A_rho: the 6 generators are only a
+# small part of their conjugacy class (size 182/306/870 for q=13/17/29), so
+# A_rho is generally not central and has (up to dim(rho)) distinct genuine
+# eigenvalues. For q=13, the actual graph adjacency spectrum has 55 distinct
+# eigenvalues against the 15 sector-trace values computed here. Every
+# "trace-selected"/kappa/M_tr quantity below is named and used accordingly:
+# none of it is identified with a Laplacian eigenvalue, a spectral envelope,
+# or a Ramanujan-admissible mode. See SpectralO5.tex, Remark
+# rem:trace-not-eigenvalue, for the full statement and the class-function
+# saturation result (Proposition prop:vertex-admissible-saturation) that
+# holds regardless of this distinction.
 
-class AdmissibleModel:
+class CharacterTraceModel:
   """Bundles the verified group/graph/character-table data for one (q,p)
-  and exposes the per-vertex admissible character fingerprint pi_A(g)."""
+  and exposes the per-vertex character-trace fingerprint pi_A(g). See the
+  module-level comment above §4: kappa/mu_bar here are trace averages, not
+  proven spectral eigenvalues."""
 
   def __init__(self, q, p=5):
     self.q, self.p, self.d = q, p, p + 1
@@ -388,18 +406,18 @@ class AdmissibleModel:
     self.adm_mask = (lam > 1e-6) & (lam <= lam_star + 1e-9)
     self.n_adm = int(self.adm_mask.sum())
     self.kappa = mu[self.adm_mask] / d
-    # M_adm: rows = conjugacy classes, columns = admissible irreps
+    # M_adm: rows = conjugacy classes, columns = trace-selected irreps
     self.M_adm = self.chartable[self.adm_mask, :].T
     self.rank_Madm = int(np.linalg.matrix_rank(self.M_adm, tol=1e-6))
     self.n_zero_kappa = int(np.sum(np.abs(self.kappa) < 1e-9))
 
     # P_A = M_adm @ diag(kappa): this, not M_adm itself, is what actually
     # determines dim(R_A). A row of M_adm is transformed component-wise by
-    # kappa_rho before it ever reaches pi_A; kappa_rho = 0 is compatible
-    # with admissibility (lambda_rho = d exactly still lies in (0, lambda*]),
-    # so a column of M_adm can be admissible yet contribute nothing to the
-    # achievable span. r_A = rank(P_A) <= rank(M_adm), and the inequality is
-    # observed to be strict in practice (see AdmissibleModel.summary()).
+    # kappa_rho before it ever reaches pi_A; kappa_rho = 0 is compatible with
+    # trace-selection (lambda_rho = d exactly still lies in (0, lambda*]),
+    # so a column of M_adm can be trace-selected yet contribute nothing to
+    # the achievable span. r_A = rank(P_A) <= rank(M_adm), and the inequality is
+    # observed to be strict in practice (see CharacterTraceModel.summary()).
     self.P_A = self.M_adm * self.kappa[None, :]
     self.r_A = int(np.linalg.matrix_rank(self.P_A, tol=1e-6))
 
@@ -417,7 +435,7 @@ class AdmissibleModel:
     return (f"q={self.q} ({self.label}(2,{self.q})): |G|={self.n}, r={self.r} classes, "
             f"generators in {len(self.gen_class_ids)} class(es), "
             f"n_adm={self.n_adm}/{self.r}, rank(M_adm)={self.rank_Madm}, "
-            f"r_A=rank(P_A)={self.r_A} ({self.n_zero_kappa} admissible sectors have kappa=0)")
+            f"r_A=rank(P_A)={self.r_A} ({self.n_zero_kappa} trace-selected sectors have kappa=0)")
 
 
 # ================================================================
@@ -550,7 +568,7 @@ def build_steinberg_projections(elems, gen_mats, q):
 
 def figure1_A_vs_B(q=13, p=5, outfile='fig1_A_vs_B.png'):
   print(f"Figure 1: Version A vs B (character-based), q={q}")
-  model = AdmissibleModel(q, p)
+  model = CharacterTraceModel(q, p)
   print("  " + model.summary())
   shells, dist = bfs_shells(model.adj, model.n)
 
@@ -588,7 +606,7 @@ def figure1_A_vs_B(q=13, p=5, outfile='fig1_A_vs_B.png'):
   ax.set_xlabel(r'$|S_n|$ (log)')
   ax.set_xscale('log')
   ax.set_ylabel(r'$\dim\Pi(S_n)$')
-  ax.set_title('Rank of admissible span (shell-layered)')
+  ax.set_title('Rank of character-trace span (shell-layered)')
   ax.legend(fontsize=7)
   ax.grid(True, alpha=0.3)
 
@@ -626,7 +644,7 @@ def figure1_A_vs_B(q=13, p=5, outfile='fig1_A_vs_B.png'):
     f"  $n_{{\\rm adm}} = {model.n_adm}$ of ${model.r}$ classes\n"
     f"  $\\mathrm{{rank}}(M_{{\\rm adm}}) = {model.rank_Madm}$\n"
     f"  $r_A = \\mathrm{{rank}}(P_A) = {model.r_A}$"
-    f" ({model.n_zero_kappa} admissible sectors have $\\kappa_\\rho=0$)\n\n"
+    f" ({model.n_zero_kappa} trace-selected sectors have $\\kappa_\\rho=0$)\n\n"
     f"VERSION A (empirical, this traversal only):\n"
     f"  $\\dim\\Pi_A(S_n)$ reaches $r_A$ at $|S_n| \\approx {satA}$\n\n"
     f"VERSION B (character, layered):\n"
@@ -658,7 +676,7 @@ def figure2_versionB_qdep(qs=(13, 29), p=5, outfile='fig2_versionB_sat.png'):
   colors = {13: 'green', 17: 'blue', 29: 'orange', 41: 'red'}
 
   for q in qs:
-    model = AdmissibleModel(q, p)
+    model = CharacterTraceModel(q, p)
     print("  " + model.summary())
     shells, dist = bfs_shells(model.adj, model.n)
     bare_chi = model.Pi_mat / model.kappa[None, :]
@@ -691,14 +709,14 @@ def figure2_versionB_qdep(qs=(13, 29), p=5, outfile='fig2_versionB_sat.png'):
   axes[0].set_xlabel(r'$|S_n|$ (log)')
   axes[0].set_xscale('log')
   axes[0].set_ylabel(r'$\dim\Pi(S_n)$')
-  axes[0].set_title('Rank of admissible spans')
+  axes[0].set_title('Rank of character-trace spans')
   axes[0].legend(fontsize=7)
   axes[0].grid(True, alpha=0.3)
 
   axes[1].set_xlabel(r'$|S_n|$ (log)')
   axes[1].set_xscale('log')
   axes[1].set_ylabel(r'$\tilde{r}_n$')
-  axes[1].set_title(r'Admissible frontier fraction')
+  axes[1].set_title(r'Trace-productive frontier fraction')
   axes[1].legend(fontsize=7)
   axes[1].grid(True, alpha=0.3)
   axes[1].set_ylim(-0.05, 1.05)
@@ -714,7 +732,7 @@ def figure2_versionB_qdep(qs=(13, 29), p=5, outfile='fig2_versionB_sat.png'):
 
 def figure3_matrix_variants(q=13, p=5, outfile='fig3_matB_variants.png'):
   print(f"Figure 3: Matrix variants M1/M2/M3/M4, q={q}")
-  model = AdmissibleModel(q, p)
+  model = CharacterTraceModel(q, p)
   print("  " + model.summary())
   bare_chi = model.Pi_mat / model.kappa[None, :]
   shells, dist = bfs_shells(model.adj, model.n)
@@ -777,7 +795,7 @@ def figure3_matrix_variants(q=13, p=5, outfile='fig3_matB_variants.png'):
   axes[1].set_xlabel(r'$|S_n|$ (log)')
   axes[1].set_xscale('log')
   axes[1].set_ylabel(r'$\tilde{r}_n^{\rm mat}$')
-  axes[1].set_title('Admissible frontier fraction')
+  axes[1].set_title('Trace-productive frontier fraction')
   axes[1].legend(fontsize=7)
   axes[1].grid(True, alpha=0.3)
   axes[1].set_ylim(-0.05, 1.05)
@@ -804,7 +822,7 @@ def figure4_steinberg_presat(qs=(13, 17, 29), p=5, outfile='fig4_StElem_presat.p
   all_data = {}
   for q in qs:
     print(f"  q={q}...", end=' ', flush=True)
-    model = AdmissibleModel(q, p)
+    model = CharacterTraceModel(q, p)
     steins, gen_steins = build_steinberg_projections(model.elems, model.gen_mats, q)
 
     def fp_St(u, v, gi, st=steins, gst=gen_steins):
@@ -854,7 +872,7 @@ def figure4_steinberg_presat(qs=(13, 17, 29), p=5, outfile='fig4_StElem_presat.p
   ax.set_xlabel(r'$|S_n|$ (log)')
   ax.set_xscale('log')
   ax.set_ylabel(r'$\tilde{r}_n^{\rm St}$')
-  ax.set_title(r'Admissible frontier fraction')
+  ax.set_title(r'Trace-productive frontier fraction')
   ax.legend(fontsize=9)
   ax.grid(True, alpha=0.3)
   ax.set_ylim(-0.05, 1.05)
@@ -877,7 +895,7 @@ def figure4_steinberg_presat(qs=(13, 17, 29), p=5, outfile='fig4_StElem_presat.p
               marker='o', ms=2, label=f'$q={q}$')
   ax.set_xlabel(r'$|S_n|$ (log)')
   ax.set_ylabel(r'$p_n^{\rm prod}$ (log)')
-  ax.set_title(r'Cumulative admissible front (reference only; no exponent fit)')
+  ax.set_title(r'Cumulative trace-productive front (reference only; no exponent fit)')
   ax.legend(fontsize=7)
   ax.grid(True, alpha=0.3)
 

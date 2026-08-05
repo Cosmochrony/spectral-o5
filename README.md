@@ -1,6 +1,5 @@
 This repository contains the source of the **O5** Cosmochrony paper
-*Admissible Frontier Saturation and the Cascade Exponent: A Representation-Theoretic Obstruction
-and its Matrix-Level Refinement*.
+*Finite Character-Trace Saturation and the Limits of Vertex-Based Cascade Dynamics*.
 
 This work extends the **spectral relaxation programme** by auditing candidate mechanisms for the
 cascade exponent $\beta$ governing the growth law
@@ -9,10 +8,9 @@ $p(n) \sim n^\beta$.
 
 While **O4** derives the quadratic upper bound $p(n) \lesssim Cn^2$ from the bounded-flux
 constraint, matching to the charged-lepton hierarchy separately selects $\betastar \in (0.09,
-0.13)$, leaving a factor of $10$--$20$ between the two unexplained. The present paper introduces
-the notion of *admissible frontier* --- the part of a graph exploration's boundary that carries
-genuinely new admissible-spectral information --- and tests, both by proof and by shell-layered
-numerical construction, whether the resulting notion of novelty can explain that gap.
+0.13)$, leaving a factor of $10$--$20$ between the two unexplained. The present paper tests,
+both by proof and by shell-layered numerical construction, whether a finite class-function
+(character-trace) encoding of a graph exploration's boundary can supply that gap.
 
 # Group and Graph Construction, Verified
 
@@ -26,25 +24,39 @@ reverse edge among the six generators, checked exhaustively), and graph-distance
 is computed by Dixon's algorithm and verified via Burnside's identity ($\sum_\rho \dim(\rho)^2 =
 |G|$), rather than transcribed from the classical classification a second time.
 
+# Trace Selection Is Not Spectral Admissibility
+
+For a sector $\rho$, write $A_\rho = \sum_{s \in \mathcal{S}_p} \rho(s)$ and $\bar\mu_\rho =
+\mathrm{tr}(A_\rho)/\dim\rho$. Because the six LPS generators are only a small part of their
+conjugacy class (size $182$, $306$, or $870$ for $q=13,17,29$), $A_\rho$ is generally **not**
+central, and $\bar\mu_\rho$ is a trace average, not a genuine eigenvalue of $A_\rho$: for $q=13$,
+direct diagonalisation of the graph's own adjacency matrix gives **55 distinct eigenvalues**
+against the **15 sector-trace values** computed from the character table. Every sector weight,
+selection window, and fingerprint in this paper is therefore named and used as a *character-trace*
+object, never identified with a Laplacian eigenvalue, a spectral envelope, or a Ramanujan-admissible
+mode.
+
 # Core Result
 
-The paper proves a dimension bound on the vertex-based admissible span. With LPS generating set of
-size $p+1$, the vertex-based admissible fingerprint span
+The paper proves a dimension bound that holds for **any** weighted class-function encoding, not
+only the specific character-trace weights used here: for $\pi_A(g) := (\kappa_\rho\,
+\chi_\rho(g))_{\rho \in \widehat G^{\mathrm{tr}}}$, the span
 
 $\mathcal{R}_A = \mathrm{span}\{\pi_A(g) : g \in G\}$
 
-has dimension $r_A = \rank(M_{\mathrm{adm}} D_\kappa) \le \rank(M_{\mathrm{adm}}) \le
-|\mathrm{Cl}(G)| = O(q)$, far below $|G| = O(q^3)$. The first inequality is strict whenever an
-admissible sector has vanishing spectral coupling $\kappa_\rho = 0$, which occurs for several
-sectors simultaneously in every case tested ($q=13$: $\rank(M_{\mathrm{adm}})=13$ but $r_A=6$).
-Consequently a finite spanning witness $T \subset G$ exists with $|T| = r_A$. This is an existence
-statement about the abstract admissible span, not a bound on how many vertices a graph exploration
-must visit before finding such a witness: an explicit shell-by-shell traversal of $X^{5,13}$ needs
-$187$ vertices to span a $6$-dimensional space, more than thirty times the abstract minimum.
+has dimension $r_A = \rank(M_{\mathrm{tr}} D_\kappa) \le \rank(M_{\mathrm{tr}}) \le
+|\mathrm{Cl}(G)| = O(q)$, far below $|G| = O(q^3)$, because $\pi_A$ is constant on conjugacy
+classes regardless of which sectors or weights are chosen. The first inequality is strict whenever
+a trace-selected sector has $\kappa_\rho = 0$, which occurs for several sectors simultaneously in
+every case tested ($q=13$: $\rank(M_{\mathrm{tr}})=13$ but $r_A=6$). Consequently a finite spanning
+witness $T \subset G$ exists with $|T| = r_A$. This is an existence statement about the abstract
+span, not a bound on how many vertices a graph exploration must visit before finding such a
+witness: an explicit shell-by-shell traversal of $X^{5,13}$ needs $187$ vertices to span a
+$6$-dimensional space, more than thirty times the abstract minimum.
 
 # What the Transition-Level Analysis Shows
 
-The paper then examines transition-based refinements of admissible novelty, using a
+The paper then examines transition-based refinements of trace-productive novelty, using a
 *shell-layered* definition in which the transitions entering graph-distance shell $n$ are tested
 only against the span of strictly earlier shells --- avoiding both the self-reference of a naive
 definition (which is vacuously empty as literally stated) and any dependence on graph-traversal
@@ -52,7 +64,7 @@ order.
 
 None of the constructions tested supplies a viable mechanism for the smallness of $\betastar$:
 
-- the **character-based** transition fingerprint plateaus well short of the admissible ambient
+- the **character-trace** transition fingerprint plateaus well short of its own ambient
   dimension on every tested LPS graph (dimension $3$ of $13$ at $q=13$; $9$ of $16$ at $q=29$);
 - **fixed-dimensional matrix proxies** saturate their own small ambient dimension within a few
   dozen vertices, disqualifying them as $q$-structural mechanisms;
@@ -70,18 +82,22 @@ a different admissibility substrate (the Heisenberg measurement graph).
 
 # Structural Role of O5
 
-O5 does not identify a mechanism for $\betastar$. It rules out several natural candidates:
+O5 is an **obstruction result**, not a construction of the genuine spectral frontier. It excludes
+finite class-function (character-trace) encodings of the vertex boundary as a source of the rich,
+mode-resolved novelty a viable cascade mechanism would need:
 
-- the vertex-based admissible span is provably low-dimensional, but this bounds an abstract
-  quantity, not the cost of a graph exploration reaching it;
-- character-based and fixed-dimensional matrix transition fingerprints fail to produce a viable
+- the class-function saturation bound holds for any such encoding, character-trace or otherwise,
+  and bounds an abstract quantity, not the cost of a graph exploration reaching it;
+- character-trace and fixed-dimensional matrix transition fingerprints fail to produce a viable
   $q$-structural mechanism;
 - the one construction with correct $q$-structural growth (Steinberg) saturates too fast to be
   measured, rather than too slowly.
 
-Whether a dynamical redundancy mechanism in a matrix-valued space of growing dimension could
-succeed where these constructions do not remains open. This paper narrows the search by closing
-off the constructions examined; it does not identify what does explain the observed hierarchy.
+A genuine mode-resolved (eigenvalue-level, not trace-level) frontier would require actual matrix
+representations of $G$, the true blocks $A_\rho = \sum_{s \in \mathcal{S}_p} \rho(s)$, and
+fingerprints indexed by individual eigenmodes $(\rho, j)$ rather than by sector alone --- none of
+which is constructed here. That is a distinct, harder question, left open for a future paper under
+its own frozen contract.
 
 # Relation to Previous Steps
 
@@ -101,16 +117,19 @@ $\beta$ beyond the quadratic bound $p(n) \lesssim Cn^2$ already established by O
 
 This paper is:
 
-- a proved dimension bound on the vertex-based admissible span, with an explicit existence/witness
-  distinction;
+- a proved dimension bound, for any weighted class-function encoding, with an explicit
+  existence/witness distinction;
+- an explicit, verified distinction between the character-trace quantities used here and genuine
+  spectral eigenvalues (Section "Trace Selection Is Not Spectral Admissibility" above);
 - a set of $q$-finite numerical observations about transition-based fingerprints, none of which
   constitutes a structural derivation of $\betastar$;
 - an explicit withdrawal of an earlier conjectural mechanism, with the reasons for withdrawal
   stated.
 
-It does **not** claim to explain the smallness of $\betastar$, does **not** claim a $q$-structural
-saturation law for any transition-based construction tested, and does **not** treat any of its
-numerical fits as stable across the tested range of $q$.
+It does **not** claim to explain the smallness of $\betastar$, does **not** claim to select
+spectrally admissible modes in the proven sense, does **not** claim a $q$-structural saturation law
+for any transition-based construction tested, and does **not** treat any of its numerical fits as
+stable across the tested range of $q$.
 
 # Repository Structure
 ```
@@ -131,14 +150,15 @@ python code/SpectralO5_computations.py
 
 This regenerates all four figures from the shell-layered cascade (`code/SpectralO5_computations.py`,
 functions `layered_vertex_cascade` and `layered_transition_cascade`) on $X^{5,q}$ for the $q$ values
-used in each figure.
+used in each figure. The character-trace layer (`CharacterTraceModel`) documents, in its own module
+comment, the trace-average/eigenvalue distinction above.
 
 # Citation
 
 If you reference this work, please cite:
 
-J. Beau, Admissible Frontier Saturation and the Cascade Exponent: A Representation-Theoretic
-Obstruction and its Matrix-Level Refinement, Zenodo, 2026.
+J. Beau, Finite Character-Trace Saturation and the Limits of Vertex-Based Cascade Dynamics,
+Zenodo, 2026.
 
 # Acknowledgements
 
@@ -153,7 +173,8 @@ of the author.
 This repository is intended as a research reference.
 
 Critical feedback, independent verification, and alternative constructions for the transition-level
-admissible frontier are welcome.
+character-trace frontier --- or for the genuine mode-resolved spectral frontier this paper leaves
+open --- are welcome.
 
 Please open an issue to discuss conceptual points,
 technical details, or possible extensions.

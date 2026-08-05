@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you cite this work, please use the metadata from this file."
-title: "Admissible Frontier Saturation and the Cascade Exponent: A Representation-Theoretic Obstruction and its Matrix-Level Refinement"
+title: "Finite Character-Trace Saturation and the Limits of Vertex-Based Cascade Dynamics"
 type: software
 authors:
   - family-names: "Beau"
@@ -12,7 +12,7 @@ doi: "10.5281/zenodo.19120328"
 license: "CC-BY-4.0"
 preferred-citation:
   type: article
-  title: "Admissible Frontier Saturation and the Cascade Exponent: A Representation-Theoretic Obstruction and its Matrix-Level Refinement"
+  title: "Finite Character-Trace Saturation and the Limits of Vertex-Based Cascade Dynamics"
   authors:
     - family-names: "Beau"
       given-names: "Jérôme"
