@@ -1,97 +1,73 @@
-This repository contains the source of the **O5** Cosmochrony paper  
-*Subdiffusive Valence Growth under Bounded Relational Flux: Structural Derivation of the Cascade Exponent*.
+This repository contains the source of the **O5** Cosmochrony paper
+*Admissible Frontier Saturation and the Cascade Exponent: A Representation-Theoretic Obstruction
+and its Matrix-Level Refinement*.
 
-This work extends the **spectral relaxation programme** by addressing the final
-remaining structural parameter left undetermined by O4: the cascade exponent
-$\beta$ governing the growth law
+This work extends the **spectral relaxation programme** by auditing candidate mechanisms for the
+cascade exponent $\beta$ governing the growth law
 
 $p(n) \sim n^\beta$.
 
-While **O4** closes the mass spectrum through a unified stabilisation mechanism
-for all three ADE levels, it still treats $\beta$ as an external structural input.
-The present work removes that freedom at the level of admissible growth laws by
-showing that bounded relational flux imposes a non-trivial constraint on the
-allowed dynamics of valence growth.
-
-The central result is that the Born--Infeld saturation bound inherited from the
-substrate,
-
-$|\partial_t \chi_v| \le c_{\mathrm{BI}}$,
-
-excludes all superlinear growth laws and implies the structural bound
-
-$\beta \le 1$.
+While **O4** derives the quadratic upper bound $p(n) \lesssim Cn^2$ from the bounded-flux
+constraint, matching to the charged-lepton hierarchy separately selects $\betastar \in (0.09,
+0.13)$, leaving a factor of $10$--$20$ between the two unexplained. The present paper introduces
+the notion of *admissible frontier* --- the part of a graph exploration's boundary that carries
+genuinely new admissible-spectral information --- and tests, both by proof and by shell-layered
+numerical construction, whether the resulting notion of novelty can explain that gap.
 
 # Core Result
 
-The paper establishes a **first-principles upper bound** on the cascade exponent.
+The paper proves a dimension bound on the vertex-based admissible span. For $G = \PSL(2,\F_q)$
+with LPS generating set of size $p+1$, the vertex-based admissible fingerprint span
 
-Starting from:
+$\mathcal{R}_A = \mathrm{span}\{\pi_A(g) : g \in G\}$
 
-- the bounded-flux constraint on the substrate
-- the Ramanujan--LPS relaxation graph model
-- a closure hypothesis relating effective valence to cumulative exploration of
-  the relational configuration space
+has dimension $r_A \le \rank(M_{\mathrm{adm}}) \le |\mathrm{Cl}(G)| = O(q)$, far below $|G| =
+O(q^3)$, by a direct consequence of the representation theory of $G$. Consequently a finite
+spanning witness $T \subset G$ exists with $|T| = r_A$. This is an existence statement about the
+abstract admissible span, not a bound on how many vertices a graph exploration must visit before
+finding such a witness: an explicit shell-by-shell traversal of $X^{5,13}$ needs $149$ vertices to
+span a $5$-dimensional space, nearly thirty times the abstract minimum.
 
-the analysis shows that the growth of valence satisfies
+# What the Transition-Level Analysis Shows
 
-$\Delta p(n) \lesssim c_{\mathrm{BI}} \sqrt{p(n)}$,
+The paper then examines transition-based refinements of admissible novelty, using a
+*shell-layered* definition in which the transitions entering graph-distance shell $n$ are tested
+only against the span of strictly earlier shells --- avoiding both the self-reference of a naive
+definition (which is vacuously empty as literally stated) and any dependence on graph-traversal
+order.
 
-which integrates to
+None of the constructions tested supplies a viable mechanism for the smallness of $\betastar$:
 
-$p(n) \lesssim \frac{1}{4} c_{\mathrm{BI}}^2 n^2$.
+- the **character-based** transition fingerprint plateaus well short of the admissible ambient
+  dimension on every tested LPS graph (dimension $6$ of $12$ at $q=13$; $14$ of $28$ at $q=29$);
+- **fixed-dimensional matrix proxies** saturate their own small ambient dimension within a few
+  dozen vertices, disqualifying them as $q$-structural mechanisms;
+- the **Steinberg-based** fingerprint on $\mathbb{P}^1(\F_q)$ is the one construction with
+  genuinely $q$-structural ambient growth, but it saturates its full ambient rank within the first
+  two to three graph-distance shells for every tested $q \in \{13, 17, 29\}$ --- inside the local,
+  tree-like regime shared by all three graphs at that radius --- leaving no pre-saturation window
+  from which any exponent could be measured.
 
-As a consequence, any admissible power-law ansatz
-
-$p(n) \sim n^\beta$
-
-must satisfy
-
-$\beta \le 1$.
+A conjectural matrix-level redundancy law proposed in an earlier version of this paper is
+withdrawn as a candidate mechanism: no construction examined here supplies the regime in which it
+could be measured, and it shares its functional form with an expander-derived capacity-to-rate
+conversion law that the companion *Span-Growth Note* proves has no native carrier when applied to
+a different admissibility substrate (the Heisenberg measurement graph).
 
 # Structural Role of O5
 
-O5 does not yet derive the exact value of $\beta$, but it removes an entire class
-of otherwise possible growth laws.
+O5 does not identify a mechanism for $\betastar$. It rules out several natural candidates:
 
-This resolves the last major arbitrariness in the O-series at the level of
-scaling structure:
+- the vertex-based admissible span is provably low-dimensional, but this bounds an abstract
+  quantity, not the cost of a graph exploration reaching it;
+- character-based and fixed-dimensional matrix transition fingerprints fail to produce a viable
+  $q$-structural mechanism;
+- the one construction with correct $q$-structural growth (Steinberg) saturates too fast to be
+  measured, rather than too slowly.
 
-- **O3** showed that $\beta$ controls the amplification of the mass hierarchy
-- **O4** closed the full three-generation spectrum once $\beta$ is given
-- **O5** proves that $\beta$ cannot be superlinear
-
-The cascade exponent is therefore no longer an unconstrained positive parameter,
-but a structurally restricted quantity inherited from bounded relational flux.
-
-# What O5 Adds
-
-O5 introduces a new layer of structural necessity:
-
-- the valence growth law is not free
-- the bounded-flux condition constrains the rate at which new relational
-  structure can become accessible
-- the mass-hierarchy mechanism of O3--O4 must therefore operate within a
-  sublinear or at most linear regime
-
-This significantly strengthens the internal consistency of the programme.
-
-# Interpretation of the Bound
-
-The inequality
-
-$\beta \le 1$
-
-has a clear physical meaning in the Cosmochrony framework.
-
-It states that the relational substrate cannot explore new effective valence
-faster than allowed by its finite flux capacity.
-The relaxation front may widen along the cascade, but not arbitrarily fast.
-Superlinear growth would require an effective propagation of relational
-accessibility incompatible with the saturation bound.
-
-Thus the observed hierarchy cannot arise from unrestricted graph expansion,
-but only from a dynamically constrained exploration process.
+Whether a dynamical redundancy mechanism in a matrix-valued space of growing dimension could
+succeed where these constructions do not remains open. This paper narrows the search by closing
+off the constructions examined; it does not identify what does explain the observed hierarchy.
 
 # Relation to Previous Steps
 
@@ -104,94 +80,51 @@ O5 preserves all previous structural results:
 - hierarchical amplification via growing valence from **O3**
 - unified mass closure from **O4**
 
-It does not modify the mass formula itself.
-Instead, it constrains the only remaining dynamical degree of freedom entering
-that formula.
-
-# Conceptual Structure
-
-O5 completes the next stage of the structural chain:
-
-1. Spectral admissibility → mode selection
-2. Spectral capacity → binary-polyhedral maximality
-3. Spectral stratigraphy → discrete ADE levels
-4. O1 → ordering via support contraction
-5. O3 → amplification via valence growth
-6. O4 → closure of the full mass spectrum
-7. O5 → structural bound on the growth exponent $\beta$
-
-The programme now contains no unconstrained superlinear cascade law.
-
-# What O5 Resolves
-
-O5 provides:
-
-- a structural derivation of the upper bound $\beta \le 1$
-- a first-principles exclusion of superlinear valence growth
-- a direct link between bounded Born--Infeld flux and cascade kinematics
-- a substantial reduction in the residual arbitrariness of the O-series
-
-It shows that the mass hierarchy mechanism is not merely compatible with bounded
-relational dynamics, but is directly constrained by it.
-
-# Residual Open Problem
-
-What remains open is no longer the qualitative class of $\beta$, but its
-**quantitative value**.
-
-O5 does not yet derive the phenomenologically relevant window for $\beta$.
-It only proves that the exact exponent must lie within the structurally
-admissible regime
-
-$0 < \beta \le 1$.
-
-Deriving the sharper interval selected by lepton and quark hierarchies requires
-additional geometric input beyond the present argument.
-
-# Open Directions
-
-1. **Sharper derivation of $\beta$**  
-   From refined geometry of the relational front and the effective dimension of
-   the explored configuration space
-
-2. **Connection with the phenomenological window**  
-   Explaining why the hierarchy-compatible regime appears near the small-$\beta$
-   range identified in O3
-
-3. **Extension to quarks and neutrinos**  
-   Testing whether the same bounded-growth logic constrains the full flavour sector
-
-4. **Beyond power-law ansätze**  
-   Studying whether more general admissible growth laws obey analogous structural
-   bounds
+It does not modify the mass formula itself, and does not derive a value or a tight bound for
+$\beta$ beyond the quadratic bound $p(n) \lesssim Cn^2$ already established by O4.
 
 # Status
 
-This framework is now:
+This paper is:
 
-- spectrally complete
-- dynamically unified
-- structurally constrained
-- free of superlinear cascade arbitrariness
+- a proved dimension bound on the vertex-based admissible span, with an explicit existence/witness
+  distinction;
+- a set of $q$-finite numerical observations about transition-based fingerprints, none of which
+  constitutes a structural derivation of $\betastar$;
+- an explicit withdrawal of an earlier conjectural mechanism, with the reasons for withdrawal
+  stated.
 
-It does not assume:
-
-- unconstrained hierarchy parameters
-- arbitrary graph-growth laws
-- external amplification mechanisms
+It does **not** claim to explain the smallness of $\betastar$, does **not** claim a $q$-structural
+saturation law for any transition-based construction tested, and does **not** treat any of its
+numerical fits as stable across the tested range of $q$.
 
 # Repository Structure
 ```
 paper/
 ├── out/ # Compiled O5 PDF
 ├── tex/ # LaTeX sources
+├── code/ # Reproduction scripts and figures
 └── README.md
 ```
+
+# Reproducing the numerical results
+
+From the repository root, with `numpy`, `scipy`, and `matplotlib` installed:
+
+```bash
+python code/SpectralO5_computations.py
+```
+
+This regenerates all four figures from the shell-layered cascade (`code/SpectralO5_computations.py`,
+functions `layered_vertex_cascade` and `layered_transition_cascade`) on $X^{5,q}$ for the $q$ values
+used in each figure.
+
 # Citation
 
 If you reference this work, please cite:
 
-J. Beau, Subdiffusive Valence Growth under Bounded Relational Flux: Structural Derivation of the Cascade Exponent, Zenodo, 2026.
+J. Beau, Admissible Frontier Saturation and the Cascade Exponent: A Representation-Theoretic
+Obstruction and its Matrix-Level Refinement, Zenodo, 2026.
 
 # Acknowledgements
 
@@ -202,11 +135,11 @@ All theoretical results and interpretations remain the sole responsibility
 of the author.
 
 # Contributions
- 
+
 This repository is intended as a research reference.
 
-Critical feedback, independent verification, and alternative derivations of the
-cascade exponent bound are welcome.
+Critical feedback, independent verification, and alternative constructions for the transition-level
+admissible frontier are welcome.
 
 Please open an issue to discuss conceptual points,
 technical details, or possible extensions.

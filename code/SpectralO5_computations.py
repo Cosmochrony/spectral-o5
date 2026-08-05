@@ -281,75 +281,120 @@ def build_steinberg_projections(elems, elem_mats, gen_mats, q):
 
 
 # ----------------------------------------------------------------
-# Generic BFS cascade measurement
+# Shell-by-shell (graph-distance) cascade
 # ----------------------------------------------------------------
+#
+# v2.0 replaces the old single-vertex BFS traversal (which tested each
+# frontier candidate against a span partially built from other, arbitrarily
+# ordered same-shell candidates already processed in that traversal) by a
+# cascade indexed by exact graph distance from the origin vertex. Shell m
+# is tested against the span of shells strictly before m, then absorbed as
+# a whole before shell m+1 is examined. This removes all dependence on BFS
+# tie-breaking, parent choice, or insertion order within a shell, and for
+# the transition-based fingerprint it is the object that gives a
+# non-tautological novelty test: Pi_B^{<n} never contains any of the
+# vectors it is used to test.
 
-def bfs_cascade(adj, fp_func, fp_dim, n_verts, max_steps=200):
+def bfs_shells(adj, n_verts):
+  """Exact graph-distance shells and distances from vertex 0."""
+  dist = {0: 0}
+  bq = deque([0])
+  while bq:
+    u = bq.popleft()
+    for (v, gi) in adj.get(u, []):
+      if v not in dist:
+        dist[v] = dist[u] + 1
+        bq.append(v)
+  shells = {}
+  for v, d in dist.items():
+    shells.setdefault(d, []).append(v)
+  return shells, dist
+
+
+def _rank_basis(sp):
+  if len(sp) == 0:
+    return 0, None
+  sv = np.linalg.svd(sp, compute_uv=False)
+  r = int(np.sum(sv > 1e-8))
+  if r == 0:
+    return 0, None
+  _, _, Vt = np.linalg.svd(sp, full_matrices=False)
+  return r, Vt[:r, :]
+
+
+def _is_novel(fp, rank, Vt):
+  if rank == 0 or np.all(np.abs(fp) < 1e-10):
+    return True
+  proj = Vt.T @ (Vt @ fp)
+  return np.linalg.norm(fp - proj) > 1e-8
+
+
+def layered_vertex_cascade(shells, dist, fp_func, fp_dim, max_shell=None):
   """
-  BFS cascade measuring dim Pi, r_tilde, admissible count at each step.
-  fp_func(u_idx, v_idx, gi) -> R^fp_dim fingerprint vector.
-  Returns dict of arrays: Sn, dS, dim_Pi, rt, adm_count.
+  Version A (vertex-based): shell m is tested against Pi_A(S_{m-1}), the
+  span of strictly earlier shells, then absorbed. fp_func(v) -> R^fp_dim.
+  Returns dict of arrays: Sn (cumulative |S_n|), shell, dim, novel, rt.
   """
-  S = set([0])
-  frontier = {0: (None, None)}  # v -> (parent_u, generator_idx)
-  added = set([0])
-  bfs_q = deque([0])
+  max_d = max(shells.keys()) if max_shell is None else max_shell
   span = np.zeros((0, fp_dim))
+  res = {'Sn': [], 'shell': [], 'dim': [], 'novel': [], 'rt': []}
+  cum = 0
+  for m in range(0, max_d + 1):
+    verts = shells.get(m, [])
+    rank, Vt = _rank_basis(span)
+    novel = 0
+    rows = []
+    for v in verts:
+      f = fp_func(v)
+      if _is_novel(f, rank, Vt):
+        novel += 1
+      rows.append(f)
+    if rows:
+      span = np.vstack([span, np.array(rows)]) if len(span) > 0 else np.array(rows)
+    cum += len(verts)
+    rank2, _ = _rank_basis(span)
+    res['Sn'].append(cum)
+    res['shell'].append(m)
+    res['dim'].append(rank2)
+    res['novel'].append(novel)
+    res['rt'].append(novel / len(verts) if verts else 0.0)
+  return {k: np.array(v) for k, v in res.items()}
 
-  res = {'Sn': [], 'dS': [], 'dim_Pi': [], 'rt': [], 'adm_count': []}
 
-  def rank_Vt(sp):
-    if len(sp) == 0:
-      return 0, None
-    sv = np.linalg.svd(sp, compute_uv=False)
-    r = int(np.sum(sv > 1e-8))
-    if r == 0:
-      return 0, None
-    _, _, Vt = np.linalg.svd(sp, full_matrices=False)
-    return r, Vt[:r, :]
-
-  for step in range(max_steps):
-    if not frontier:
-      break
-    rank, Vt_r = rank_Vt(span)
-    adm_c = 0
-    for v, (u, gi) in frontier.items():
-      if u is None:
-        continue
-      ev = fp_func(u, v, gi)
-      if rank == 0 or np.all(np.abs(ev) < 1e-10):
-        adm_c += 1
-      else:
-        proj = Vt_r.T @ (Vt_r @ ev)
-        if np.linalg.norm(ev - proj) > 1e-8:
-          adm_c += 1
-    dS = len(frontier)
-    res['Sn'].append(len(S))
-    res['dS'].append(dS)
-    res['dim_Pi'].append(rank)
-    res['adm_count'].append(adm_c)
-    res['rt'].append(adm_c / dS if dS > 0 else 0)
-
-    v_new = None
-    while bfs_q:
-      cand = bfs_q.popleft()
-      if cand in frontier:
-        v_new = cand
-        break
-    if v_new is None:
-      v_new = next(iter(frontier))
-    u_new, gi_new = frontier[v_new]
-    if u_new is not None:
-      new_fp = fp_func(u_new, v_new, gi_new).reshape(1, -1)
-      span = np.vstack([span, new_fp]) if len(span) > 0 else new_fp
-    S.add(v_new)
-    del frontier[v_new]
-    for (nb, gi) in adj.get(v_new, []):
-      if nb < n_verts and nb not in added:
-        frontier[nb] = (v_new, gi)
-        bfs_q.append(nb)
-        added.add(nb)
-
+def layered_transition_cascade(adj, shells, dist, fp_func, fp_dim, max_shell=None):
+  """
+  Version B (layered, non-tautological): the edges from shell m-1 into
+  shell m are tested against Pi_B^{<m}, the span of transitions landing in
+  strictly earlier shells, then absorbed as a whole. fp_func(u, v, gi) ->
+  R^fp_dim. A boundary vertex v in shell m is counted as novel if *any*
+  edge into it from shell m-1 has a fingerprint outside Pi_B^{<m}.
+  """
+  max_d = max(shells.keys()) if max_shell is None else max_shell
+  span = np.zeros((0, fp_dim))
+  res = {'Sn': [], 'shell': [], 'dim': [], 'novel': [], 'rt': []}
+  cum = 0
+  for m in range(0, max_d + 1):
+    verts = shells.get(m, [])
+    rank, Vt = _rank_basis(span)
+    novel_verts = set()
+    rows = []
+    if m >= 1:
+      for u in shells.get(m - 1, []):
+        for (v, gi) in adj.get(u, []):
+          if dist.get(v) == m:
+            f = fp_func(u, v, gi)
+            if _is_novel(f, rank, Vt):
+              novel_verts.add(v)
+            rows.append(f)
+    if rows:
+      span = np.vstack([span, np.array(rows)]) if len(span) > 0 else np.array(rows)
+    cum += len(verts)
+    rank2, _ = _rank_basis(span)
+    res['Sn'].append(cum)
+    res['shell'].append(m)
+    res['dim'].append(rank2)
+    res['novel'].append(len(novel_verts))
+    res['rt'].append(len(novel_verts) / len(verts) if verts else 0.0)
   return {k: np.array(v) for k, v in res.items()}
 
 
@@ -366,22 +411,23 @@ def figure1_A_vs_B(q=13, p=5, outfile='fig1_A_vs_B.png'):
   n_adm = len(adm_idx)
   kappa = np.array([mu_vals[k] / d for k in adm_idx])
   rank_Madm = np.linalg.matrix_rank(Pi_mat, tol=1e-6)
+  shells, dist = bfs_shells(adj, n)
 
-  # Version A fingerprint
-  def fp_A(u, v, gi):
+  # Version A fingerprint (vertex-only)
+  def fp_A(v):
     return Pi_mat[v, :]
 
-  # Version B (character) fingerprint
+  # Version B (character) fingerprint, layered
   def fp_B(u, v, gi):
     return kappa * Pi_mat[u, :] * Pi_mat[v, :]
 
-  print(f"  |G|={n}, n_adm={n_adm}, rank(M_adm)={rank_Madm}")
-  res_A = bfs_cascade(adj, fp_A, n_adm, n, max_steps=100)
-  res_B = bfs_cascade(adj, fp_B, n_adm, n, max_steps=100)
+  print(f"  |G|={n}, n_adm={n_adm}, rank(M_adm)={rank_Madm}, shells={max(shells)}")
+  res_A = layered_vertex_cascade(shells, dist, fp_A, n_adm)
+  res_B = layered_transition_cascade(adj, shells, dist, fp_B, n_adm)
 
   fig, axes = plt.subplots(2, 2, figsize=(12, 8))
   fig.suptitle(
-    f'Version A vs B (character-based) on $X^{{{p},{q}}}$\n'
+    f'Version A vs B (character-based) on $X^{{{p},{q}}}$, shell-layered cascade\n'
     f'$|G|={n}$, $n_{{\\rm adm}}={n_adm}$, '
     f'$\\mathrm{{rank}}(M_{{\\rm adm}})={rank_Madm}$',
     fontsize=12
@@ -389,54 +435,60 @@ def figure1_A_vs_B(q=13, p=5, outfile='fig1_A_vs_B.png'):
   Sn_A, Sn_B = res_A['Sn'], res_B['Sn']
 
   ax = axes[0, 0]
-  ax.plot(Sn_A, res_A['dim_Pi'], 'g-o', ms=3, label=r'$\dim\Pi_A(S_n)$')
-  ax.plot(Sn_B, res_B['dim_Pi'], 'b-s', ms=3, label=r'$\dim\Pi_B(S_n)$', alpha=0.8)
+  ax.plot(Sn_A, res_A['dim'], 'g-o', ms=3, label=r'$\dim\Pi_A(S_n)$')
+  ax.plot(Sn_B, res_B['dim'], 'b-s', ms=3, label=r'$\dim\Pi_B^{<n}$', alpha=0.8)
   ax.axhline(rank_Madm, color='g', linestyle='--',
              label=f'$\\mathrm{{rank}}(M_{{\\rm adm}})={rank_Madm}$')
   ax.axhline(n_adm, color='b', linestyle=':',
              label=f'$n_{{\\rm adm}}={n_adm}$')
   ax.set_xlabel(r'$|S_n|$')
   ax.set_ylabel(r'$\dim\Pi(S_n)$')
-  ax.set_title('Rank of admissible span')
+  ax.set_title('Rank of admissible span (shell-layered)')
   ax.legend(fontsize=8)
   ax.grid(True, alpha=0.3)
 
   ax = axes[0, 1]
   ax.plot(Sn_A, res_A['rt'], 'g-o', ms=3, label=r'$\tilde{r}^A_n$ (vertex)')
-  ax.plot(Sn_B, res_B['rt'], 'b-s', ms=3, label=r'$\tilde{r}^B_n$ (character)', alpha=0.8)
+  ax.plot(Sn_B, res_B['rt'], 'b-s', ms=3, label=r'$\tilde{r}^B_n$ (character, layered)', alpha=0.8)
   ax.set_xlabel(r'$|S_n|$')
   ax.set_ylabel(r'$\tilde{r}_n$')
-  ax.set_title(r'Admissible frontier fraction')
+  ax.set_title(r'Shell-wise novelty fraction')
   ax.legend(fontsize=9)
   ax.grid(True, alpha=0.3)
   ax.set_ylim(-0.05, 1.05)
 
   ax = axes[1, 0]
-  r_A = np.array(res_A['dim_Pi'], dtype=float) / np.maximum(res_A['Sn'], 1)
-  ax.plot(Sn_A, r_A, 'g-o', ms=3)
+  r_A = np.array(res_A['dim'], dtype=float) / np.maximum(res_A['Sn'], 1)
+  ax.plot(Sn_A, r_A, 'g-o', ms=3, label=r'$r_n$')
+  ax.axhline(rank_Madm / n, color='k', linestyle=':', alpha=0.6,
+             label=r'$r_A/|G|$ (finite floor, not 0)')
   ax.set_xlabel(r'$|S_n|$')
-  ax.set_ylabel(r'$r_n = \dim\Pi_A/|S_n|$')
-  ax.set_title(r'Rank-to-size ratio $r_n \to 0$ (Corollary~1)')
+  ax.set_ylabel(r'$r_n = \dim\Pi_A(S_n)/|S_n|$')
+  ax.set_title(r'Finite bound $r_n\leq r_A/|S_n|$ (Corollary~1)')
+  ax.legend(fontsize=8)
   ax.grid(True, alpha=0.3)
 
   ax = axes[1, 1]
   ax.axis('off')
+  satA = next((res_A['Sn'][i] for i, d_ in enumerate(res_A['dim']) if d_ >= rank_Madm), None)
   summary = (
-    f"KEY NUMBERS ($q={q}$, $p={p}$):\n\n"
+    f"KEY NUMBERS ($q={q}$, $p={p}$), shell-layered:\n\n"
     f"  $|G| = {n}$\n"
     f"  $n_{{\\rm adm}} = {n_adm}$\n"
-    f"  $\\mathrm{{rank}}(M_{{\\rm adm}}) = {rank_Madm}$\n\n"
-    f"VERSION A:\n"
-    f"  Saturates at $|S^*| \\approx "
-    f"{next((res_A['Sn'][i] for i, d_ in enumerate(res_A['dim_Pi']) if d_ >= rank_Madm), '?')}$\n"
+    f"  $\\mathrm{{rank}}(M_{{\\rm adm}}) = r_A = {rank_Madm}$\n\n"
+    f"VERSION A (empirical, this traversal only):\n"
+    f"  $\\dim\\Pi_A(S_n)$ reaches $r_A$ at $|S_n| \\approx {satA}$\n"
+    f"  (abstract witness only guarantees size $r_A={rank_Madm}$;\n"
+    f"   the gap is the BFS/shell discovery cost, not a bound)\n"
     f"  Late $\\tilde{{r}}^A$: {np.mean(res_A['rt'][-5:]):.3f}\n\n"
-    f"VERSION B (character):\n"
-    f"  Max $\\dim\\Pi_B$: {max(res_B['dim_Pi'])}\n"
+    f"VERSION B (character, layered):\n"
+    f"  Max $\\dim\\Pi_B^{{<n}}$: {max(res_B['dim'])}\n"
     f"  Late $\\tilde{{r}}^B$: {np.mean(res_B['rt'][-5:]):.3f}\n"
-    f"  (No decay -- character collapse)"
+    f"  (no decay -- character collapse persists\n"
+    f"   under the layered definition too)"
   )
   ax.text(0.05, 0.95, summary, transform=ax.transAxes,
-          fontsize=10, verticalalignment='top', fontfamily='monospace',
+          fontsize=9.5, verticalalignment='top', fontfamily='monospace',
           bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.8))
   ax.set_title('Summary')
 
@@ -467,23 +519,24 @@ def figure2_versionB_qdep(qs=(13, 29), p=5, outfile='fig2_versionB_sat.png'):
     n_adm = len(adm_idx)
     kappa = np.array([mu_vals[k] / d for k in adm_idx])
     rank_Madm = np.linalg.matrix_rank(Pi_mat, tol=1e-6)
+    shells, dist = bfs_shells(adj, n)
 
-    def fp_A(u, v, gi, Pi=Pi_mat):
+    def fp_A(v, Pi=Pi_mat):
       return Pi[v, :]
 
     def fp_B(u, v, gi, Pi=Pi_mat, kap=kappa):
       return kap * Pi[u, :] * Pi[v, :]
 
-    res_A = bfs_cascade(adj, fp_A, n_adm, n, max_steps=100)
-    res_B = bfs_cascade(adj, fp_B, n_adm, n, max_steps=100)
+    res_A = layered_vertex_cascade(shells, dist, fp_A, n_adm)
+    res_B = layered_transition_cascade(adj, shells, dist, fp_B, n_adm)
     col = colors.get(q, 'gray')
 
-    axes[0].plot(res_A['Sn'], res_A['dim_Pi'],
+    axes[0].plot(res_A['Sn'], res_A['dim'],
                  color=col, linestyle='-', marker='o', ms=2,
                  label=f'$\\dim\\Pi_A$, $q={q}$')
-    axes[0].plot(res_B['Sn'], res_B['dim_Pi'],
+    axes[0].plot(res_B['Sn'], res_B['dim'],
                  color=col, linestyle='--', marker='s', ms=2,
-                 label=f'$\\dim\\Pi_B$, $q={q}$', alpha=0.7)
+                 label=f'$\\dim\\Pi_B^{{<n}}$, $q={q}$', alpha=0.7)
     axes[0].axhline(rank_Madm, color=col, linestyle=':', alpha=0.4)
 
     axes[1].plot(res_A['Sn'], res_A['rt'],
@@ -551,18 +604,20 @@ def figure3_matrix_variants(q=13, p=5, outfile='fig3_matB_variants.png'):
     ('M4: 3 products', fp_M4, 12, 'green'),
   ]
 
+  shells, dist = bfs_shells(adj, n)
+
   fig, axes = plt.subplots(1, 3, figsize=(15, 5))
   fig.suptitle(
-    f'Matrix-based Version B variants on $X^{{{p},{q}}}$',
+    f'Matrix-based Version B variants on $X^{{{p},{q}}}$, shell-layered cascade',
     fontsize=12
   )
 
   for name, fp, dim, col in variants:
     print(f"  Running {name} (dim={dim})...", end=' ', flush=True)
-    res = bfs_cascade(adj, fp, dim, n, max_steps=200)
-    print(f"max_dim={max(res['dim_Pi'])}, late_rt={np.mean(res['rt'][-5:]):.3f}")
+    res = layered_transition_cascade(adj, shells, dist, fp, dim)
+    print(f"max_dim={max(res['dim'])}, late_rt={np.mean(res['rt'][-5:]):.3f}")
     Sn = res['Sn']
-    axes[0].plot(Sn, res['dim_Pi'], marker='o', ms=2, color=col, label=name)
+    axes[0].plot(Sn, res['dim'], marker='o', ms=2, color=col, label=name)
     axes[0].axhline(dim, color=col, linestyle=':', alpha=0.3)
     axes[1].plot(Sn, res['rt'], marker='o', ms=2, color=col, label=name)
     valid = np.array(res['rt']) > 0.005
@@ -573,8 +628,8 @@ def figure3_matrix_variants(q=13, p=5, outfile='fig3_matB_variants.png'):
                        marker='o', ms=2, color=col, label=name)
 
   axes[0].set_xlabel(r'$|S_n|$')
-  axes[0].set_ylabel(r'$\dim\Pi^{\rm mat}(S_n)$')
-  axes[0].set_title('Rank of matrix span')
+  axes[0].set_ylabel(r'$\dim\Pi^{\rm mat}_{<n}(S_n)$')
+  axes[0].set_title('Rank of matrix span (shell-layered)')
   axes[0].legend(fontsize=7)
   axes[0].grid(True, alpha=0.3)
 
@@ -614,72 +669,14 @@ def figure4_steinberg_presat(qs=(13, 17, 29), p=5, outfile='fig4_StElem_presat.p
     def fp_St(u, v, gi, st=steins, gst=gen_steins):
       return st[u] * gst[gi]
 
-    # Dense BFS with cumulative front tracking
-    S = set([0])
-    frontier = {0: (None, None)}
-    added = set([0])
-    bfs_q_local = deque([0])
-    span = np.zeros((0, q + 1))
-    p_prod = 0
+    shells, dist = bfs_shells(adj, n)
+    res = layered_transition_cascade(adj, shells, dist, fp_St, q + 1,
+                                      max_shell=min(len(shells) - 1, 400))
 
-    Sn_l, rt_l, dim_l, pprod_l = [], [], [], []
-
-    def rk(sp):
-      if len(sp) == 0:
-        return 0, None
-      sv = np.linalg.svd(sp, compute_uv=False)
-      r = int(np.sum(sv > 1e-8))
-      if r == 0:
-        return 0, None
-      _, _, Vt = np.linalg.svd(sp, full_matrices=False)
-      return r, Vt[:r, :]
-
-    for step in range(min(400, n // 3)):
-      if not frontier:
-        break
-      rank, Vt_r = rk(span)
-      adm_c = 0
-      for v, (u, gi) in frontier.items():
-        if u is None:
-          continue
-        ev = fp_St(u, v, gi)
-        if rank == 0 or np.all(np.abs(ev) < 1e-10):
-          adm_c += 1
-        else:
-          proj = Vt_r.T @ (Vt_r @ ev)
-          if np.linalg.norm(ev - proj) > 1e-8:
-            adm_c += 1
-      dS = len(frontier)
-      p_prod += adm_c
-      Sn_l.append(len(S))
-      rt_l.append(adm_c / dS if dS > 0 else 0)
-      dim_l.append(rank)
-      pprod_l.append(p_prod)
-
-      v_new = None
-      while bfs_q_local:
-        cand = bfs_q_local.popleft()
-        if cand in frontier:
-          v_new = cand
-          break
-      if v_new is None:
-        v_new = next(iter(frontier))
-      u_new, gi_new = frontier[v_new]
-      if u_new is not None:
-        new_fp = fp_St(u_new, v_new, gi_new).reshape(1, -1)
-        span = np.vstack([span, new_fp]) if len(span) > 0 else new_fp
-      S.add(v_new)
-      del frontier[v_new]
-      for (nb, gi) in adj.get(v_new, []):
-        if nb < n and nb not in added:
-          frontier[nb] = (v_new, gi)
-          bfs_q_local.append(nb)
-          added.add(nb)
-
-    Sn_arr = np.array(Sn_l)
-    rt_arr = np.array(rt_l)
-    dim_arr = np.array(dim_l)
-    pp_arr = np.array(pprod_l)
+    Sn_arr = res['Sn']
+    rt_arr = res['rt']
+    dim_arr = res['dim']
+    pp_arr = np.cumsum(res['novel'])
 
     sat_idx = next((i for i, d_ in enumerate(dim_arr) if d_ >= q + 1), None)
     sat_Sn = int(Sn_arr[sat_idx]) if sat_idx is not None else None
