@@ -29,13 +29,12 @@ Usage:
 
 Dependencies: numpy, scipy, matplotlib, sympy (standard scientific stack)
 
-Verification discipline: the group is verified against the closed-form order of
-PSL(2,F_q)/PGL(2,F_q), exact (p+1)-regularity, full edge symmetry, and
-graph-distance shell sizes matching the free (p+1)-regular tree before any
-collision; the character table is verified via Burnside's identity
-(sum of squared dimensions = |G|), pairwise commutativity of the class-sum
-matrices, and reality of the recovered character values. See
-`self_check()` at the bottom of §3/§4.
+Verification discipline: the group is verified (in `build_graph`/`CharacterTraceModel.__init__`)
+against the closed-form order of PSL(2,F_q)/PGL(2,F_q), exact (p+1)-regularity, and full edge
+symmetry; the character table is verified (in `dixon_character_table`) via exhaustive pairwise
+commutativity of the class-sum matrices, Burnside's identity (sum of squared dimensions = |G|),
+reality of the recovered values, and full row/column orthogonality of the table -- every check
+raises AssertionError on failure rather than silently proceeding.
 """
 
 import sys
@@ -315,12 +314,15 @@ def dixon_character_table(perm_group):
         j = cls_of[elt_key(y)]
         M[i][j, k] += 1
 
-  # Verification 1: the class-sum matrices must pairwise commute.
+  # Verification 1: the class-sum matrices must pairwise commute. Checked
+  # exhaustively (all r^2 ordered pairs, cheap for the r <= 19 tested here),
+  # not sampled.
   rng = np.random.default_rng(0)
-  for _ in range(min(8, r * r)):
-    i, j = rng.integers(0, r), rng.integers(0, r)
-    if not np.allclose(M[i] @ M[j], M[j] @ M[i], atol=1e-6):
-      raise AssertionError("class-sum matrices do not commute: structure constants are wrong")
+  for i in range(r):
+    for j in range(r):
+      if not np.allclose(M[i] @ M[j], M[j] @ M[i], atol=1e-6):
+        raise AssertionError(f"class-sum matrices M[{i}],M[{j}] do not commute: "
+                              "structure constants are wrong")
 
   coeffs = rng.standard_normal(r)
   Mc = sum(c * Mi for c, Mi in zip(coeffs, M))
@@ -349,8 +351,23 @@ def dixon_character_table(perm_group):
   # here because q = 1 mod 4 for every q tested by this paper).
   if np.max(np.abs(dims.imag)) > 1e-6 or np.max(np.abs(chartable.imag)) > 1e-6:
     raise AssertionError("character table has non-negligible imaginary part")
+  chartable = chartable.real
+  dims = dims.real
 
-  return classes, sizes, reps, cls_of, dims.real, chartable.real, id_idx
+  # Verification 4: full row and column orthogonality of the character
+  # table (not just Burnside's diagonal identity). Row rho, rho': sum_k
+  # |C_k| chi_rho(k) chi_rho'(k) = |G| delta_{rho,rho'}. Column k, k':
+  # sum_rho chi_rho(k) chi_rho(k') = (|G|/|C_k|) delta_{k,k'}.
+  sizes_arr = np.array(sizes, dtype=float)
+  row_gram = (chartable * sizes_arr[None, :]) @ chartable.T
+  if not np.allclose(row_gram, Gorder * np.eye(r), atol=1e-4 * Gorder):
+    raise AssertionError("row orthogonality of the character table failed")
+  col_gram = chartable.T @ chartable
+  expected_col = np.diag(Gorder / sizes_arr)
+  if not np.allclose(col_gram, expected_col, atol=1e-4 * Gorder):
+    raise AssertionError("column orthogonality of the character table failed")
+
+  return classes, sizes, reps, cls_of, dims, chartable, id_idx
 
 
 # ================================================================
@@ -421,11 +438,18 @@ class CharacterTraceModel:
     self.P_A = self.M_adm * self.kappa[None, :]
     self.r_A = int(np.linalg.matrix_rank(self.P_A, tol=1e-6))
 
-    # Precompute pi_A(g) for every group element (row = vertex index).
+    # Precompute chi_rho(g) and pi_A(g) for every group element (row = vertex
+    # index). Chi_mat stores the BARE characters directly from the table
+    # lookup, not recovered by dividing Pi_mat by kappa (kappa can be as
+    # small as 1e-19 for some trace-selected sectors, which is numerically
+    # fragile as a division and unnecessary when the bare values are already
+    # available from chartable).
     elem_class = np.array([
       self.cls_of[tuple(action_on_P1(M, q).tolist())] for M in elems
     ])
-    self.Pi_mat = (self.chartable[self.adm_mask][:, elem_class] * self.kappa[:, None]).T
+    self.Chi_mat = self.chartable[self.adm_mask][:, elem_class].T
+    # Chi_mat[v, :] = (chi_rho(v))_{rho in Gtr}
+    self.Pi_mat = self.Chi_mat * self.kappa[None, :]
     # Pi_mat[v, :] = pi_A(v) in R^{n_adm}; rank(Pi_mat) == r_A by construction.
 
   def pi_A(self, v_idx):
@@ -577,7 +601,7 @@ def figure1_A_vs_B(q=13, p=5, outfile='fig1_A_vs_B.png'):
 
   # pi_B(u->v) = kappa * chi(u) * chi(v); Pi_mat already carries kappa*chi,
   # so recover the bare characters by dividing out kappa once.
-  bare_chi = model.Pi_mat / model.kappa[None, :]
+  bare_chi = model.Chi_mat
 
   def fp_B(u, v, gi):
     return model.kappa * bare_chi[u, :] * bare_chi[v, :]
@@ -679,7 +703,7 @@ def figure2_versionB_qdep(qs=(13, 29), p=5, outfile='fig2_versionB_sat.png'):
     model = CharacterTraceModel(q, p)
     print("  " + model.summary())
     shells, dist = bfs_shells(model.adj, model.n)
-    bare_chi = model.Pi_mat / model.kappa[None, :]
+    bare_chi = model.Chi_mat
 
     def fp_A(v, Pi=model.Pi_mat):
       return Pi[v, :]
@@ -734,7 +758,7 @@ def figure3_matrix_variants(q=13, p=5, outfile='fig3_matB_variants.png'):
   print(f"Figure 3: Matrix variants M1/M2/M3/M4, q={q}")
   model = CharacterTraceModel(q, p)
   print("  " + model.summary())
-  bare_chi = model.Pi_mat / model.kappa[None, :]
+  bare_chi = model.Chi_mat
   shells, dist = bfs_shells(model.adj, model.n)
 
   def fp_M1(u, v, gi):

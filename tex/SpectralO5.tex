@@ -700,9 +700,17 @@
         \]
         A prototype was implemented via the permutation action of $G$ on $\mathbb{P}^1(\F_q)$
         ($q+1$ points).
-        Each element $g$ induces a permutation $\sigma_g$; the Steinberg projection
-        $\tilde{\sigma}_g = \sigma_g - \mathrm{mean}(\sigma_g)$ lies in the $q$-dimensional Steinberg
-        component.
+        Each element $g$ induces a permutation $\sigma_g$ of the $q+1$ points of $\mathbb P^1(\F_q)$,
+        labelled by the integers $0,\ldots,q-1,\infty$; the fingerprint used here is the
+        mean-centred vector of these integer labels, $\tilde{\sigma}_g := \sigma_g -
+        \mathrm{mean}(\sigma_g) \in \R^{q+1}$, where $\sigma_g(i)$ is read as a numeric coordinate.
+        This lies in the $q$-dimensional mean-zero subspace, but it is \emph{not} the canonical
+        basis-permutation realisation of the Steinberg representation (which would act on
+        one-hot basis vectors $e_i$ rather than on the numeric labels $i$ themselves): relabelling
+        which integer names which point changes $\tilde\sigma_g$ by more than an orthogonal change
+        of basis, so the specific saturation counts below are a property of this coordinate
+        construction, on the standard $0,\ldots,q-1,\infty$ labelling, and are not shown to be
+        label-invariant.
         The fingerprint $\pi_B^{\mathrm{St}}(u\to v) = \tilde{\sigma}_u \odot \tilde{\sigma}_s
         \in \R^{q+1}$ is $O(q)$-dimensional and depends on $u$ and $s$ as matrices.
         Crucially, the LPS generators have six distinct Steinberg projections despite lying in a
